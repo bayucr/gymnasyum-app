@@ -27,7 +27,7 @@ export function CustomerTable({
   if (customers.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
-        Belum ada data customer. Klik "Tambah Customer" untuk menambahkan data
+        Belum ada data customer. Klik Tambah Customer untuk menambahkan data
         baru.
       </div>
     );

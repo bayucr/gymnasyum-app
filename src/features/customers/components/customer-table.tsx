@@ -10,12 +10,18 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
-import { CustomerWithRiskFlag } from "../services/customer.service";
+import {
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Clock,
+  CheckCircle2,
+} from "lucide-react";
+import { CustomerWithPriority } from "../services/customer.service";
 
 interface CustomerTableProps {
-  customers: CustomerWithRiskFlag[];
-  onEdit: (customer: CustomerWithRiskFlag) => void;
+  customers: CustomerWithPriority[];
+  onEdit: (customer: CustomerWithPriority) => void;
   onDelete: (id: string) => void;
 }
 
@@ -44,7 +50,7 @@ export function CustomerTable({
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Kehadiran</TableHead>
             <TableHead className="font-semibold">Pembatalan</TableHead>
-            <TableHead className="font-semibold">Risiko</TableHead>
+            <TableHead className="font-semibold">Prioritas Follow-up</TableHead>
             <TableHead className="text-right font-semibold">Aksi</TableHead>
           </TableRow>
         </TableHeader>
@@ -78,20 +84,31 @@ export function CustomerTable({
                 {customer.cancellation_count}x
               </TableCell>
               <TableCell>
-                {customer.isHighRisk ? (
+                {customer.priorityLevel === "High" && (
                   <Badge
                     variant="destructive"
                     className="bg-rose-100 text-rose-800 hover:bg-rose-100 border-rose-200 gap-1"
                   >
                     <AlertTriangle className="h-3 w-3 text-rose-600" />
-                    Tinggi
+                    High
                   </Badge>
-                ) : (
+                )}
+                {customer.priorityLevel === "Medium" && (
                   <Badge
                     variant="outline"
-                    className="text-slate-500 border-slate-200"
+                    className="bg-amber-50 text-amber-800 hover:bg-amber-50 border-amber-200 gap-1"
                   >
-                    Normal
+                    <Clock className="h-3 w-3 text-amber-600" />
+                    Medium
+                  </Badge>
+                )}
+                {customer.priorityLevel === "Low" && (
+                  <Badge
+                    variant="outline"
+                    className="bg-emerald-50 text-emerald-800 hover:bg-emerald-50 border-emerald-200 gap-1"
+                  >
+                    <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                    Low
                   </Badge>
                 )}
               </TableCell>

@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { CustomerWithRiskFlag } from "../services/customer.service";
+import { CustomerWithPriority } from "../services/customer.service";
 import { CustomerFormValues } from "../components/customer-form-dialog";
 
 export function useCustomers() {
-  const [customers, setCustomers] = useState<CustomerWithRiskFlag[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithPriority[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 

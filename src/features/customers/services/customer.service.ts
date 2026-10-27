@@ -8,34 +8,57 @@ import {
   normalizePhoneNumber,
 } from "../schemas/customer.schema";
 
-export interface CustomerWithRiskFlag extends Customer {
-  isHighRisk: boolean;
+export type FollowUpPriority = "Low" | "Medium" | "High";
+
+export interface CustomerWithPriority extends Customer {
+  priorityLevel: FollowUpPriority;
+}
+
+/**
+ * Mengkalkulasi tingkat prioritas follow-up berdasarkan riwayat aktivitas customer:
+ * - High  : Pembatalan >= 3 x  ATAU Kehadiran < 50%
+ * - Medium: Pembatalan 1-2 x  ATAU Kehadiran 50% - 79%
+ * - Low   : Pembatalan 0 x    DAN Kehadiran >= 80%
+ */
+export function calculatePriorityLevel(
+  attendanceRate: number,
+  cancellationCount: number,
+): FollowUpPriority {
+  if (cancellationCount >= 3 || attendanceRate < 0.5) {
+    return "High";
+  }
+  if (cancellationCount >= 1 || attendanceRate < 0.8) {
+    return "Medium";
+  }
+  return "Low";
 }
 
 export class CustomerService {
   constructor(private repo: CustomerRepository = customerRepository) {}
 
-  async getAllCustomers(): Promise<CustomerWithRiskFlag[]> {
+  async getAllCustomers(): Promise<CustomerWithPriority[]> {
     const customers = await this.repo.findAll();
 
     return customers.map((c) => ({
       ...c,
-      isHighRisk: c.cancellation_count >= 3 || c.attendance_rate < 0.5,
+      priorityLevel: calculatePriorityLevel(
+        c.attendance_rate,
+        c.cancellation_count,
+      ),
     }));
   }
 
-  async getCustomerById(id: string): Promise<CustomerWithRiskFlag> {
+  async getCustomerById(id: string): Promise<CustomerWithPriority> {
     const customer = await this.repo.findById(id);
     return {
       ...customer,
-      isHighRisk:
-        customer.cancellation_count >= 3 || customer.attendance_rate < 0.5,
+      priorityLevel: calculatePriorityLevel(
+        customer.attendance_rate,
+        customer.cancellation_count,
+      ),
     };
   }
 
-  /**
-   * Menyimpan customer baru dengan sanitasi nomor telepon terstandarisasi (62...)
-   */
   async createCustomer(input: CustomerSchemaInput): Promise<Customer> {
     const normalizedPhone = normalizePhoneNumber(input.phone);
 

@@ -23,7 +23,7 @@ import {
   customerSchema,
   CustomerSchemaInput,
 } from "@/features/customers/schemas/customer.schema";
-import { CustomerWithRiskFlag } from "../services/customer.service";
+import { CustomerWithPriority } from "../services/customer.service";
 
 export type CustomerFormValues = CustomerSchemaInput;
 
@@ -31,7 +31,7 @@ interface CustomerFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CustomerFormValues) => Promise<void>;
-  initialData?: CustomerWithRiskFlag | null;
+  initialData?: CustomerWithPriority | null;
   isSubmitting: boolean;
 }
 
@@ -177,6 +177,51 @@ export function CustomerFormDialog({
               </Select>
             </div>
           </div>
+
+          {/* Field khusus override riwayat, hanya tampil pada mode Edit */}
+          {initialData && (
+            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <Label htmlFor="attendance_rate_pct">Kehadiran (%)</Label>
+                <Input
+                  id="attendance_rate_pct"
+                  type="number"
+                  min={0}
+                  max={100}
+                  placeholder="100"
+                  value={Math.round((form.watch("attendance_rate") ?? 1) * 100)}
+                  onChange={(e) => {
+                    const pct = parseFloat(e.target.value) || 0;
+                    const clamped = Math.min(100, Math.max(0, pct));
+                    form.setValue("attendance_rate", clamped / 100);
+                  }}
+                />
+                {form.formState.errors.attendance_rate && (
+                  <p className="text-xs text-rose-500">
+                    {form.formState.errors.attendance_rate.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="cancellation_count">Jumlah Pembatalan</Label>
+                <Input
+                  id="cancellation_count"
+                  type="number"
+                  min={0}
+                  placeholder="0"
+                  {...form.register("cancellation_count", {
+                    valueAsNumber: true,
+                  })}
+                />
+                {form.formState.errors.cancellation_count && (
+                  <p className="text-xs text-rose-500">
+                    {form.formState.errors.cancellation_count.message}
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button

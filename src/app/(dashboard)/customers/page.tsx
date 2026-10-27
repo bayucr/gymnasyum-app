@@ -10,7 +10,7 @@ import {
   CustomerFormValues,
 } from "@/features/customers/components/customer-form-dialog";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
-import { CustomerWithRiskFlag } from "@/features/customers/services/customer.service";
+import { CustomerWithPriority } from "@/features/customers/services/customer.service";
 import { ErrorBanner } from "@/components/shared/error-banner";
 
 export default function CustomersPage() {
@@ -26,7 +26,7 @@ export default function CustomersPage() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] =
-    useState<CustomerWithRiskFlag | null>(null);
+    useState<CustomerWithPriority | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenCreate = () => {
@@ -34,7 +34,7 @@ export default function CustomersPage() {
     setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (customer: CustomerWithRiskFlag) => {
+  const handleOpenEdit = (customer: CustomerWithPriority) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
   };
@@ -81,8 +81,8 @@ export default function CustomersPage() {
             Data Customer
           </h1>
           <p className="text-sm text-slate-500">
-            Kelola data pelanggan, pantau rasio kehadiran, dan tingkat risiko
-            pembatalan.
+            Kelola data pelanggan, pantau rasio kehadiran, dan tingkat prioritas
+            follow-up.
           </p>
         </div>
         <Button

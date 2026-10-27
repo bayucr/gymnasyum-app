@@ -23,6 +23,7 @@ import {
   customerSchema,
   CustomerSchemaInput,
 } from "@/features/customers/schemas/customer.schema";
+import { CustomerWithRiskFlag } from "../services/customer.service";
 
 export type CustomerFormValues = CustomerSchemaInput;
 
@@ -30,8 +31,7 @@ interface CustomerFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CustomerFormValues) => Promise<void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialData?: any | null;
+  initialData?: CustomerWithRiskFlag | null;
   isSubmitting: boolean;
 }
 
@@ -42,7 +42,6 @@ export function CustomerFormDialog({
   initialData,
   isSubmitting,
 }: CustomerFormDialogProps) {
-  // Biarkan React Hook Form menyelaraskan tipe dari zodResolver secara otomatis
   const form = useForm({
     resolver: zodResolver(customerSchema),
     defaultValues: {

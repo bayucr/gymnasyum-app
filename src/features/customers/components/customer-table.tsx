@@ -10,12 +10,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
-import { Customer } from "@/types/database.types";
+import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { CustomerWithRiskFlag } from "../services/customer.service";
 
 interface CustomerTableProps {
-  customers: Customer[];
-  onEdit: (customer: Customer) => void;
+  customers: CustomerWithRiskFlag[];
+  onEdit: (customer: CustomerWithRiskFlag) => void;
   onDelete: (id: string) => void;
 }
 
@@ -42,8 +42,9 @@ export function CustomerTable({
             <TableHead className="font-semibold">No. WhatsApp</TableHead>
             <TableHead className="font-semibold">Segmen</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Tingkat Kehadiran</TableHead>
+            <TableHead className="font-semibold">Kehadiran</TableHead>
             <TableHead className="font-semibold">Pembatalan</TableHead>
+            <TableHead className="font-semibold">Risiko</TableHead>
             <TableHead className="text-right font-semibold">Aksi</TableHead>
           </TableRow>
         </TableHeader>
@@ -75,6 +76,24 @@ export function CustomerTable({
               </TableCell>
               <TableCell className="text-slate-700">
                 {customer.cancellation_count}x
+              </TableCell>
+              <TableCell>
+                {customer.isHighRisk ? (
+                  <Badge
+                    variant="destructive"
+                    className="bg-rose-100 text-rose-800 hover:bg-rose-100 border-rose-200 gap-1"
+                  >
+                    <AlertTriangle className="h-3 w-3 text-rose-600" />
+                    Tinggi
+                  </Badge>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    className="text-slate-500 border-slate-200"
+                  >
+                    Normal
+                  </Badge>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">

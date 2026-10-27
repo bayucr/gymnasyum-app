@@ -1,18 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { CustomerWithRiskFlag } from "../services/customer.service";
 import { CustomerFormValues } from "../components/customer-form-dialog";
 
 export function useCustomers() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [customers, setCustomers] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<CustomerWithRiskFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Single fetch entrypoint tanpa setState sinkron di awal
+  // Single fetch entrypoint tanpa pemanggilan setState sinkron sebelum await
   const fetchCustomers = useCallback(async () => {
     try {
-      setError(null);
       const res = await fetch("/api/customers");
       const json = await res.json();
 
@@ -21,6 +20,7 @@ export function useCustomers() {
       }
 
       setCustomers(json.data || []);
+      setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan";
       setError(message);
@@ -30,13 +30,12 @@ export function useCustomers() {
     }
   }, []);
 
-  // Inisialisasi data saat komponen di-mount
+  // Inisialisasi data asinkron saat komponen di-mount
   useEffect(() => {
     let isSubscribed = true;
 
     const initFetch = async () => {
       try {
-        setError(null);
         const res = await fetch("/api/customers");
         const json = await res.json();
 
@@ -47,6 +46,7 @@ export function useCustomers() {
         }
 
         setCustomers(json.data || []);
+        setError(null);
       } catch (err) {
         if (!isSubscribed) return;
         const message =
@@ -67,13 +67,11 @@ export function useCustomers() {
     };
   }, []);
 
-  // Manual refetch untuk pemanggilan dari event/mutasi aksi pengguna
   const refetch = useCallback(async () => {
     setLoading(true);
     await fetchCustomers();
   }, [fetchCustomers]);
 
-  // Handler Tambah Customer
   const createCustomer = async (values: CustomerFormValues) => {
     const res = await fetch("/api/customers", {
       method: "POST",
@@ -90,7 +88,6 @@ export function useCustomers() {
     return json.data;
   };
 
-  // Handler Update Customer
   const updateCustomer = async (id: string, values: CustomerFormValues) => {
     const res = await fetch(`/api/customers/${id}`, {
       method: "PUT",
@@ -107,7 +104,6 @@ export function useCustomers() {
     return json.data;
   };
 
-  // Handler Hapus Customer
   const deleteCustomer = async (id: string) => {
     const res = await fetch(`/api/customers/${id}`, {
       method: "DELETE",

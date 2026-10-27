@@ -10,6 +10,7 @@ import {
   CustomerFormValues,
 } from "@/features/customers/components/customer-form-dialog";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
+import { CustomerWithRiskFlag } from "@/features/customers/services/customer.service";
 import { ErrorBanner } from "@/components/shared/error-banner";
 
 export default function CustomersPage() {
@@ -24,8 +25,8 @@ export default function CustomersPage() {
   } = useCustomers();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<CustomerWithRiskFlag | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleOpenCreate = () => {
@@ -33,8 +34,7 @@ export default function CustomersPage() {
     setIsDialogOpen(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleOpenEdit = (customer: any) => {
+  const handleOpenEdit = (customer: CustomerWithRiskFlag) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
   };
@@ -94,7 +94,6 @@ export default function CustomersPage() {
         </Button>
       </div>
 
-      {/* Banner Kesalahan jika fetch awal gagal */}
       {error && (
         <ErrorBanner
           title="Gagal Memuat Data Customer"

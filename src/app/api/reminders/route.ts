@@ -3,6 +3,7 @@ import {
   getReminderLogs,
   createReminderLog,
 } from "@/features/reminders/services/reminder.service";
+import { reminderSchema } from "@/features/reminders/schemas/reminder.schema";
 
 export async function GET() {
   try {
@@ -18,7 +19,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const newLog = await createReminderLog(body);
+    const validation = reminderSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Validasi gagal",
+          details: validation.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const newLog = await createReminderLog(validation.data);
     return NextResponse.json({ data: newLog }, { status: 201 });
   } catch (error) {
     const errorMessage =

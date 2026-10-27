@@ -36,7 +36,6 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Filter data agar hanya mengambil yang jadwalnya valid hari ini
     const filteredData = (data || []).filter((item) => item.schedules !== null);
 
     return NextResponse.json({ data: filteredData }, { status: 200 });

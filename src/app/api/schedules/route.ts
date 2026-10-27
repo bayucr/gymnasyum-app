@@ -3,6 +3,7 @@ import {
   getSchedules,
   createSchedule,
 } from "@/features/schedules/services/schedule.service";
+import { scheduleSchema } from "@/features/schedules/schemas/schedule.schema";
 
 export async function GET() {
   try {
@@ -18,7 +19,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const newSchedule = await createSchedule(body);
+    const validation = scheduleSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Validasi gagal",
+          details: validation.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const newSchedule = await createSchedule(validation.data);
     return NextResponse.json({ data: newSchedule }, { status: 201 });
   } catch (error) {
     const errorMessage =

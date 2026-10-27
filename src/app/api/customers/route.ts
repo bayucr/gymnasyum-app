@@ -3,6 +3,7 @@ import {
   getCustomers,
   createCustomer,
 } from "@/features/customers/services/customer.service";
+import { customerSchema } from "@/features/customers/schemas/customer.schema";
 
 export async function GET() {
   try {
@@ -18,7 +19,19 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const newCustomer = await createCustomer(body);
+    const validation = customerSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Validasi gagal",
+          details: validation.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const newCustomer = await createCustomer(validation.data);
     return NextResponse.json({ data: newCustomer }, { status: 201 });
   } catch (error) {
     const errorMessage =

@@ -3,6 +3,7 @@ import {
   updateReminderLog,
   deleteReminderLog,
 } from "@/features/reminders/services/reminder.service";
+import { updateReminderSchema } from "@/features/reminders/schemas/reminder.schema";
 
 export async function PUT(
   request: Request,
@@ -11,7 +12,19 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const updated = await updateReminderLog(id, body);
+    const validation = updateReminderSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json(
+        {
+          error: "Validasi gagal",
+          details: validation.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const updated = await updateReminderLog(id, validation.data);
     return NextResponse.json({ data: updated }, { status: 200 });
   } catch (error) {
     const errorMessage =

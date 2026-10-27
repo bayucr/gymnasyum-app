@@ -1,9 +1,7 @@
-import { NextResponse } from "next/server";
-import {
-  updateReminderLog,
-  deleteReminderLog,
-} from "@/features/reminders/services/reminder.service";
+import { reminderService } from "@/features/reminders/services/reminder.service";
 import { updateReminderSchema } from "@/features/reminders/schemas/reminder.schema";
+import { handleApiError, apiSuccess } from "@/lib/api-response";
+import { ValidationError } from "@/lib/errors";
 
 export async function PUT(
   request: Request,
@@ -15,21 +13,16 @@ export async function PUT(
     const validation = updateReminderSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: "Validasi gagal",
-          details: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 },
+      throw new ValidationError(
+        "Validasi data gagal",
+        validation.error.flatten().fieldErrors,
       );
     }
 
-    const updated = await updateReminderLog(id, validation.data);
-    return NextResponse.json({ data: updated }, { status: 200 });
+    const updated = await reminderService.updateReminder(id, validation.data);
+    return apiSuccess(updated);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -39,14 +32,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteReminderLog(id);
-    return NextResponse.json(
-      { message: "Log pengingat berhasil dihapus" },
-      { status: 200 },
-    );
+    await reminderService.deleteReminder(id);
+    return apiSuccess({ message: "Log pengingat berhasil dihapus" });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(error);
   }
 }

@@ -1,18 +1,14 @@
-import { NextResponse } from "next/server";
-import {
-  getSchedules,
-  createSchedule,
-} from "@/features/schedules/services/schedule.service";
+import { scheduleService } from "@/features/schedules/services/schedule.service";
 import { scheduleSchema } from "@/features/schedules/schemas/schedule.schema";
+import { handleApiError, apiSuccess } from "@/lib/api-response";
+import { ValidationError } from "@/lib/errors";
 
 export async function GET() {
   try {
-    const schedules = await getSchedules();
-    return NextResponse.json({ data: schedules }, { status: 200 });
+    const schedules = await scheduleService.getAllSchedules();
+    return apiSuccess(schedules);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(error);
   }
 }
 
@@ -22,20 +18,15 @@ export async function POST(request: Request) {
     const validation = scheduleSchema.safeParse(body);
 
     if (!validation.success) {
-      return NextResponse.json(
-        {
-          error: "Validasi gagal",
-          details: validation.error.flatten().fieldErrors,
-        },
-        { status: 400 },
+      throw new ValidationError(
+        "Validasi data gagal",
+        validation.error.flatten().fieldErrors,
       );
     }
 
-    const newSchedule = await createSchedule(validation.data);
-    return NextResponse.json({ data: newSchedule }, { status: 201 });
+    const newSchedule = await scheduleService.createSchedule(validation.data);
+    return apiSuccess(newSchedule, 201);
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(error);
   }
 }

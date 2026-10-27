@@ -1,57 +1,46 @@
-import { supabase } from "@/lib/supabase";
 import { Schedule } from "@/types/database.types";
+import {
+  scheduleRepository,
+  ScheduleRepository,
+} from "../repositories/schedule.repository";
+import { ScheduleSchemaInput } from "../schemas/schedule.schema";
 
-export async function getSchedules(): Promise<Schedule[]> {
-  const { data, error } = await supabase
-    .from("schedules")
-    .select("*")
-    .order("datetime", { ascending: true });
+export class ScheduleService {
+  constructor(private repo: ScheduleRepository = scheduleRepository) {}
 
-  if (error) {
-    throw new Error(`Gagal mengambil data jadwal: ${error.message}`);
+  async getAllSchedules(): Promise<Schedule[]> {
+    return await this.repo.findAll();
   }
 
-  return data || [];
-}
-
-export async function createSchedule(
-  scheduleData: Omit<Schedule, "id" | "created_at">,
-): Promise<Schedule> {
-  const { data, error } = await supabase
-    .from("schedules")
-    .insert([scheduleData])
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Gagal membuat jadwal baru: ${error.message}`);
+  async getScheduleById(id: string): Promise<Schedule> {
+    return await this.repo.findById(id);
   }
 
-  return data;
-}
-
-export async function updateSchedule(
-  id: string,
-  scheduleData: Partial<Omit<Schedule, "id" | "created_at">>,
-): Promise<Schedule> {
-  const { data, error } = await supabase
-    .from("schedules")
-    .update(scheduleData)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    throw new Error(`Gagal memperbarui jadwal: ${error.message}`);
+  async createSchedule(input: ScheduleSchemaInput): Promise<Schedule> {
+    return await this.repo.create(input);
   }
 
-  return data;
-}
+  async updateSchedule(
+    id: string,
+    input: Partial<ScheduleSchemaInput>,
+  ): Promise<Schedule> {
+    return await this.repo.update(id, input);
+  }
 
-export async function deleteSchedule(id: string): Promise<void> {
-  const { error } = await supabase.from("schedules").delete().eq("id", id);
-
-  if (error) {
-    throw new Error(`Gagal menghapus jadwal: ${error.message}`);
+  async deleteSchedule(id: string): Promise<void> {
+    return await this.repo.delete(id);
   }
 }
+
+export const scheduleService = new ScheduleService();
+
+// Export fungsi pembantu untuk kompatibilitas ke belakang
+export const getSchedules = () => scheduleService.getAllSchedules();
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const createSchedule = (data: any) =>
+  scheduleService.createSchedule(data);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const updateSchedule = (id: string, data: any) =>
+  scheduleService.updateSchedule(id, data);
+export const deleteSchedule = (id: string) =>
+  scheduleService.deleteSchedule(id);

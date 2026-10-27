@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Dumbbell, LayoutDashboard, Users, Calendar } from "lucide-react";
+import {
+  Dumbbell,
+  LayoutDashboard,
+  Users,
+  Calendar,
+  BellRing,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -20,6 +26,11 @@ const menuItems = [
     title: "Jadwal Kelas",
     href: "/schedules",
     icon: Calendar,
+  },
+  {
+    title: "Log Pengingat",
+    href: "/reminders",
+    icon: BellRing,
   },
 ];
 

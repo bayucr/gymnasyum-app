@@ -1,86 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, UserCheck } from "lucide-react";
+import { Plus, Users } from "lucide-react";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import {
   CustomerFormDialog,
   CustomerFormValues,
 } from "@/features/customers/components/customer-form-dialog";
-import { Customer } from "@/types/database.types";
+import { useCustomers } from "@/features/customers/hooks/use-customers";
 
 export default function CustomersPage() {
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { customers, loading, createCustomer, updateCustomer, deleteCustomer } =
+    useCustomers();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
-    null,
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchCustomers = async () => {
-    try {
-      const res = await fetch("/api/customers");
-      const json = await res.json();
-      if (json.data) {
-        setCustomers(json.data);
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data customers:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const init = async () => {
-      try {
-        const res = await fetch("/api/customers");
-        const json = await res.json();
-        if (isSubscribed && json.data) {
-          setCustomers(json.data);
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data customers:", err);
-      } finally {
-        if (isSubscribed) {
-          setLoading(false);
-        }
-      }
-    };
-
-    init();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, []);
 
   const handleOpenCreate = () => {
     setSelectedCustomer(null);
     setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (customer: Customer) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const handleOpenEdit = (customer: any) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Apakah Anda yakin ingin menghapus customer ini?")) return;
+    if (!confirm("Apakah Anda yakin ingin menghapus pelanggan ini?")) return;
 
     try {
-      setLoading(true);
-      const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        await fetchCustomers();
-      }
+      await deleteCustomer(id);
     } catch (err) {
-      console.error("Gagal menghapus customer:", err);
-      setLoading(false);
+      const message =
+        err instanceof Error ? err.message : "Gagal menghapus customer";
+      alert(message);
     }
   };
 
@@ -88,23 +46,15 @@ export default function CustomersPage() {
     try {
       setIsSubmitting(true);
       if (selectedCustomer) {
-        await fetch(`/api/customers/${selectedCustomer.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        });
+        await updateCustomer(selectedCustomer.id, values);
       } else {
-        await fetch("/api/customers", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(values),
-        });
+        await createCustomer(values);
       }
       setIsDialogOpen(false);
-      setLoading(true);
-      await fetchCustomers();
     } catch (err) {
-      console.error("Gagal menyimpan customer:", err);
+      const message =
+        err instanceof Error ? err.message : "Gagal menyimpan data";
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -115,12 +65,12 @@ export default function CustomersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
-            <UserCheck className="h-6 w-6 text-emerald-600" />
-            Data Customer Gym
+            <Users className="h-6 w-6 text-emerald-600" />
+            Data Customer
           </h1>
           <p className="text-sm text-slate-500">
-            Kelola data anggota gym, segmen, statistik kehadiran, dan nomor
-            kontak WhatsApp.
+            Kelola data pelanggan, pantau rasio kehadiran, dan tingkat risiko
+            pembatalan.
           </p>
         </div>
         <Button

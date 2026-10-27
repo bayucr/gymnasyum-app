@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus, Users } from "lucide-react";
 import { CustomerTable } from "@/features/customers/components/customer-table";
@@ -9,10 +10,18 @@ import {
   CustomerFormValues,
 } from "@/features/customers/components/customer-form-dialog";
 import { useCustomers } from "@/features/customers/hooks/use-customers";
+import { ErrorBanner } from "@/components/shared/error-banner";
 
 export default function CustomersPage() {
-  const { customers, loading, createCustomer, updateCustomer, deleteCustomer } =
-    useCustomers();
+  const {
+    customers,
+    loading,
+    error,
+    refetch,
+    createCustomer,
+    updateCustomer,
+    deleteCustomer,
+  } = useCustomers();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -35,10 +44,11 @@ export default function CustomersPage() {
 
     try {
       await deleteCustomer(id);
+      toast.success("Data customer berhasil dihapus");
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Gagal menghapus customer";
-      alert(message);
+      toast.error(message);
     }
   };
 
@@ -47,14 +57,16 @@ export default function CustomersPage() {
       setIsSubmitting(true);
       if (selectedCustomer) {
         await updateCustomer(selectedCustomer.id, values);
+        toast.success("Data customer berhasil diperbarui");
       } else {
         await createCustomer(values);
+        toast.success("Customer baru berhasil ditambahkan");
       }
       setIsDialogOpen(false);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Gagal menyimpan data";
-      alert(message);
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -81,6 +93,15 @@ export default function CustomersPage() {
           Tambah Customer
         </Button>
       </div>
+
+      {/* Banner Kesalahan jika fetch awal gagal */}
+      {error && (
+        <ErrorBanner
+          title="Gagal Memuat Data Customer"
+          message={error}
+          onRetry={refetch}
+        />
+      )}
 
       {loading ? (
         <div className="p-8 text-center text-slate-500 bg-white rounded-lg border border-slate-200">

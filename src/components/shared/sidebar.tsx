@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const menuItems = [
+export const menuItems = [
   {
     title: "Dashboard",
     href: "/",
@@ -34,11 +34,21 @@ const menuItems = [
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  className?: string;
+  onNavClick?: () => void;
+}
+
+export function Sidebar({ className, onNavClick }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-100 flex flex-col min-h-screen border-r border-slate-800">
+    <aside
+      className={cn(
+        "w-64 bg-slate-900 text-slate-100 flex flex-col min-h-screen border-r border-slate-800 shrink-0",
+        className,
+      )}
+    >
       {/* Brand Logo */}
       <div className="p-6 flex items-center gap-3 border-b border-slate-800">
         <div className="bg-emerald-500 p-2 rounded-lg text-slate-950">
@@ -66,6 +76,7 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavClick}
               aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",

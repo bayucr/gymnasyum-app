@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -20,36 +19,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Customer, SegmentType, CustomerStatus } from "@/types/database.types";
+import {
+  customerSchema,
+  CustomerSchemaInput,
+} from "@/features/customers/schemas/customer.schema";
 
-const customerSchema = z.object({
-  name: z.string().min(2, "Nama minimal 2 karakter"),
-  phone: z
-    .string()
-    .min(10, "Nomor HP minimal 10 digit")
-    .regex(/^62\d+$/, "Nomor HP harus diawali '62' (contoh: 628123456789)"),
-  segment: z.enum(["Ibu-ibu", "Lansia", "Umum"] as const, {
-    message: "Pilih segmen pelanggan",
-  }),
-  status: z.enum(["Active", "Inactive"] as const, {
-    message: "Pilih status pelanggan",
-  }),
-  attendance_rate: z
-    .number({ message: "Masukkan angka yang valid" })
-    .min(0, "Minimal 0")
-    .max(1, "Maksimal 1 (contoh: 0.85 untuk 85%)"),
-  cancellation_count: z
-    .number({ message: "Masukkan angka yang valid" })
-    .min(0, "Minimal 0"),
-});
-
-export type CustomerFormValues = z.infer<typeof customerSchema>;
+export type CustomerFormValues = CustomerSchemaInput;
 
 interface CustomerFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: CustomerFormValues) => Promise<void>;
-  initialData?: Customer | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  initialData?: any | null;
   isSubmitting: boolean;
 }
 
@@ -60,19 +42,19 @@ export function CustomerFormDialog({
   initialData,
   isSubmitting,
 }: CustomerFormDialogProps) {
-  const form = useForm<CustomerFormValues>({
+  // Biarkan React Hook Form menyelaraskan tipe dari zodResolver secara otomatis
+  const form = useForm({
     resolver: zodResolver(customerSchema),
     defaultValues: {
       name: "",
-      phone: "62",
-      segment: "Umum",
-      status: "Active",
+      phone: "",
+      segment: "Umum" as const,
+      status: "Active" as const,
       attendance_rate: 1.0,
       cancellation_count: 0,
     },
   });
 
-  // Gunakan useWatch agar aman bagi React Compiler
   const segmentValue = useWatch({
     control: form.control,
     name: "segment",
@@ -86,17 +68,17 @@ export function CustomerFormDialog({
   useEffect(() => {
     if (initialData) {
       form.reset({
-        name: initialData.name,
-        phone: initialData.phone,
-        segment: initialData.segment,
-        status: initialData.status,
-        attendance_rate: initialData.attendance_rate,
-        cancellation_count: initialData.cancellation_count,
+        name: initialData.name || "",
+        phone: initialData.phone || "",
+        segment: initialData.segment || "Umum",
+        status: initialData.status || "Active",
+        attendance_rate: initialData.attendance_rate ?? 1.0,
+        cancellation_count: initialData.cancellation_count ?? 0,
       });
     } else {
       form.reset({
         name: "",
-        phone: "62",
+        phone: "",
         segment: "Umum",
         status: "Active",
         attendance_rate: 1.0,
@@ -115,7 +97,7 @@ export function CustomerFormDialog({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {initialData ? "Edit Customer" : "Tambah Customer Baru"}
+            {initialData ? "Edit Data Customer" : "Tambah Customer Baru"}
           </DialogTitle>
         </DialogHeader>
 
@@ -127,7 +109,7 @@ export function CustomerFormDialog({
             <Label htmlFor="name">Nama Lengkap</Label>
             <Input
               id="name"
-              placeholder="Siti Rahma"
+              placeholder="Contoh: Budi Santoso"
               {...form.register("name")}
             />
             {form.formState.errors.name && (
@@ -138,10 +120,10 @@ export function CustomerFormDialog({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="phone">Nomor WA (Format 62...)</Label>
+            <Label htmlFor="phone">Nomor WhatsApp / HP</Label>
             <Input
               id="phone"
-              placeholder="6281234567890"
+              placeholder="Contoh: 081234567890"
               {...form.register("phone")}
             />
             {form.formState.errors.phone && (
@@ -153,20 +135,25 @@ export function CustomerFormDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
-              <Label>Segmen</Label>
+              <Label>Kategori Segment</Label>
               <Select
                 value={segmentValue}
-                onValueChange={(val) =>
-                  form.setValue("segment", val as SegmentType)
-                }
+                onValueChange={(val) => {
+                  if (val) {
+                    form.setValue(
+                      "segment",
+                      val as "Ibu-ibu" | "Lansia" | "Umum",
+                    );
+                  }
+                }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih Segmen" />
+                  <SelectValue placeholder="Pilih Segment" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="Umum">Umum</SelectItem>
                   <SelectItem value="Ibu-ibu">Ibu-ibu</SelectItem>
                   <SelectItem value="Lansia">Lansia</SelectItem>
-                  <SelectItem value="Umum">Umum</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,9 +162,11 @@ export function CustomerFormDialog({
               <Label>Status</Label>
               <Select
                 value={statusValue}
-                onValueChange={(val) =>
-                  form.setValue("status", val as CustomerStatus)
-                }
+                onValueChange={(val) => {
+                  if (val) {
+                    form.setValue("status", val as "Active" | "Inactive");
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih Status" />
@@ -187,41 +176,6 @@ export function CustomerFormDialog({
                   <SelectItem value="Inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <Label htmlFor="attendance_rate">Kehadiran (0.0 - 1.0)</Label>
-              <Input
-                id="attendance_rate"
-                type="number"
-                step="0.05"
-                placeholder="0.85"
-                {...form.register("attendance_rate", { valueAsNumber: true })}
-              />
-              {form.formState.errors.attendance_rate && (
-                <p className="text-xs text-rose-500">
-                  {form.formState.errors.attendance_rate.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="cancellation_count">Jumlah Pembatalan</Label>
-              <Input
-                id="cancellation_count"
-                type="number"
-                placeholder="0"
-                {...form.register("cancellation_count", {
-                  valueAsNumber: true,
-                })}
-              />
-              {form.formState.errors.cancellation_count && (
-                <p className="text-xs text-rose-500">
-                  {form.formState.errors.cancellation_count.message}
-                </p>
-              )}
             </div>
           </div>
 
@@ -239,7 +193,7 @@ export function CustomerFormDialog({
               disabled={isSubmitting}
               className="bg-emerald-600 hover:bg-emerald-700"
             >
-              {isSubmitting ? "Menyimpan..." : "Simpan"}
+              {isSubmitting ? "Menyimpan..." : "Simpan Customer"}
             </Button>
           </div>
         </form>

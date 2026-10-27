@@ -6,11 +6,12 @@ export const customerSchema = z.object({
   segment: z.enum(["Ibu-ibu", "Lansia", "Umum"], {
     message: "Segment harus salah satu dari: Ibu-ibu, Lansia, atau Umum",
   }),
-  status: z.enum(["Active", "Inactive"]).optional().default("Active"),
-  attendance_rate: z.number().min(0).max(1).optional().default(1.0),
-  cancellation_count: z.number().min(0).optional().default(0),
+  status: z.enum(["Active", "Inactive"]).default("Active"),
+  attendance_rate: z.number().min(0).max(1).default(1.0),
+  cancellation_count: z.number().min(0).default(0),
 });
 
 export const updateCustomerSchema = customerSchema.partial();
 
+// Tipe output terurai bersih tanpa undefined pada default fields
 export type CustomerSchemaInput = z.infer<typeof customerSchema>;

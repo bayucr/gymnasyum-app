@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
-import {
-  updateCustomer,
-  deleteCustomer,
-} from "@/features/customers/services/customer.service";
+import { customerService } from "@/features/customers/services/customer.service";
 import { updateCustomerSchema } from "@/features/customers/schemas/customer.schema";
+import { AppError } from "@/lib/errors";
 
 export async function PUT(
   request: Request,
@@ -24,12 +22,19 @@ export async function PUT(
       );
     }
 
-    const updated = await updateCustomer(id, validation.data);
+    const updated = await customerService.updateCustomer(id, validation.data);
     return NextResponse.json({ data: updated }, { status: 200 });
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
+        { status: error.statusCode },
+      );
+    }
+    return NextResponse.json(
+      { error: "Terjadi kesalahan internal server" },
+      { status: 500 },
+    );
   }
 }
 
@@ -39,14 +44,21 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    await deleteCustomer(id);
+    await customerService.deleteCustomer(id);
     return NextResponse.json(
       { message: "Customer berhasil dihapus" },
       { status: 200 },
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "Terjadi kesalahan server";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    if (error instanceof AppError) {
+      return NextResponse.json(
+        { error: error.message, details: error.details },
+        { status: error.statusCode },
+      );
+    }
+    return NextResponse.json(
+      { error: "Terjadi kesalahan internal server" },
+      { status: 500 },
+    );
   }
 }

@@ -157,7 +157,9 @@ export function ReminderFormDialog({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih Customer" />
+                  <SelectValue placeholder="Pilih Customer">
+                    {selectedCustomer?.name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((c) => (
@@ -183,7 +185,9 @@ export function ReminderFormDialog({
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih Jadwal" />
+                  <SelectValue placeholder="Pilih Jadwal">
+                    {selectedSchedule?.class_name}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {schedules.map((s) => (

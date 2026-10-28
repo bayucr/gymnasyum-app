@@ -154,7 +154,9 @@ export function CreateReminderDialog({
                   }}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih kelas customer..." />
+                    <SelectValue placeholder="Pilih kelas customer...">
+                      {selectedBooking?.schedules?.class_name}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {customerBookings.map((b) => (

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,8 +11,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Send } from "lucide-react";
+import { Pencil, Trash2, Send, Eye } from "lucide-react";
 import { formatPhoneForWA } from "../utils";
+import { MessagePreviewDialog } from "./message-preview-dialog";
 
 interface ReminderLogItem {
   id: string;
@@ -43,6 +45,22 @@ export function ReminderTable({
   onEdit,
   onDelete,
 }: ReminderTableProps) {
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState<{
+    customerName?: string;
+    phone?: string;
+    message?: string;
+  } | null>(null);
+
+  const handleOpenPreview = (log: ReminderLogItem) => {
+    setPreviewData({
+      customerName: log.customers?.name,
+      phone: log.customers?.phone,
+      message: log.draft_message || "",
+    });
+    setIsPreviewOpen(true);
+  };
+
   if (reminders.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
@@ -124,84 +142,109 @@ export function ReminderTable({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-slate-50">
-            <TableHead className="font-semibold">Customer</TableHead>
-            <TableHead className="font-semibold">Kelas</TableHead>
-            <TableHead className="font-semibold">Draf Pesan</TableHead>
-            <TableHead className="font-semibold">Prioritas</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="text-right font-semibold">Aksi</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {reminders.map((log) => (
-            <TableRow key={log.id} className="hover:bg-slate-50/50">
-              <TableCell className="font-medium text-slate-900">
-                <div>{log.customers?.name || "Customer N/A"}</div>
-                <div className="text-xs text-slate-500 font-normal">
-                  {log.customers?.phone || "-"}
-                </div>
-              </TableCell>
-              <TableCell className="text-slate-600">
-                <div>{log.schedules?.class_name || "Kelas N/A"}</div>
-                {log.schedules?.datetime && (
-                  <div className="text-xs text-slate-400">
-                    {new Date(log.schedules.datetime).toLocaleString("id-ID", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                )}
-              </TableCell>
-              <TableCell className="max-w-[280px] truncate text-slate-600 text-xs">
-                {log.draft_message || "-"}
-              </TableCell>
-              <TableCell>{getPriorityBadge(log.priority)}</TableCell>
-              <TableCell>{getStatusBadge(log.status)}</TableCell>
-              <TableCell className="text-right">
-                <div className="flex justify-end gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() =>
-                      handleOpenWhatsApp(
-                        log.customers?.phone,
-                        log.draft_message || "",
-                      )
-                    }
-                    title="Kirim via WhatsApp"
-                    className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onEdit(log)}
-                    className="h-8 w-8 text-slate-600 hover:text-slate-900"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDelete(log.id)}
-                    className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </TableCell>
+    <>
+      <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-slate-50">
+              <TableHead className="font-semibold">Customer</TableHead>
+              <TableHead className="font-semibold">Kelas</TableHead>
+              <TableHead className="font-semibold">Draf Pesan</TableHead>
+              <TableHead className="font-semibold">Prioritas</TableHead>
+              <TableHead className="font-semibold">Status</TableHead>
+              <TableHead className="text-right font-semibold">Aksi</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+          </TableHeader>
+          <TableBody>
+            {reminders.map((log) => (
+              <TableRow key={log.id} className="hover:bg-slate-50/50">
+                <TableCell className="font-medium text-slate-900">
+                  <div>{log.customers?.name || "Customer N/A"}</div>
+                  <div className="text-xs text-slate-500 font-normal">
+                    {log.customers?.phone || "-"}
+                  </div>
+                </TableCell>
+                <TableCell className="text-slate-600">
+                  <div>{log.schedules?.class_name || "Kelas N/A"}</div>
+                  {log.schedules?.datetime && (
+                    <div className="text-xs text-slate-400">
+                      {new Date(log.schedules.datetime).toLocaleString(
+                        "id-ID",
+                        {
+                          weekday: "short",
+                          day: "numeric",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        },
+                      )}
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell
+                  className="max-w-[280px] truncate text-slate-600 text-xs cursor-help"
+                  title={log.draft_message || ""}
+                >
+                  {log.draft_message || "-"}
+                </TableCell>
+                <TableCell>{getPriorityBadge(log.priority)}</TableCell>
+                <TableCell>{getStatusBadge(log.status)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleOpenPreview(log)}
+                      title="Lihat Pesan Lengkap"
+                      className="h-8 w-8 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() =>
+                        handleOpenWhatsApp(
+                          log.customers?.phone,
+                          log.draft_message || "",
+                        )
+                      }
+                      title="Kirim via WhatsApp"
+                      className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onEdit(log)}
+                      className="h-8 w-8 text-slate-600 hover:text-slate-900"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(log.id)}
+                      className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      <MessagePreviewDialog
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        customerName={previewData?.customerName}
+        phone={previewData?.phone}
+        message={previewData?.message}
+      />
+    </>
   );
 }

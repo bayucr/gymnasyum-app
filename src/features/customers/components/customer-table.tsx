@@ -21,6 +21,7 @@ import {
   ChevronRight,
   PlusCircle,
   CalendarDays,
+  BellRing,
 } from "lucide-react";
 import { CustomerWithPriority } from "../services/customer.service";
 import { BookingWithSchedule } from "@/features/bookings/repositories/booking.repository";
@@ -29,7 +30,8 @@ interface CustomerTableProps {
   customers: CustomerWithPriority[];
   onEdit: (customer: CustomerWithPriority) => void;
   onDelete: (id: string) => void;
-  onAssignClass?: (customer: CustomerWithPriority) => void; // Dibuat optional
+  onAssignClass?: (customer: CustomerWithPriority) => void;
+  onCreateReminder?: (customer: CustomerWithPriority) => void;
   customerBookings?: Record<string, BookingWithSchedule[]>;
   onFetchCustomerBookings?: (customerId: string) => void;
 }
@@ -39,6 +41,7 @@ export function CustomerTable({
   onEdit,
   onDelete,
   onAssignClass,
+  onCreateReminder,
   customerBookings = {},
   onFetchCustomerBookings,
 }: CustomerTableProps) {
@@ -171,6 +174,17 @@ export function CustomerTable({
                         <PlusCircle className="h-3.5 w-3.5" />
                         Daftar Kelas
                       </Button>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onCreateReminder?.(customer)}
+                        className="h-8 gap-1 text-xs text-amber-700 border-amber-200 hover:bg-amber-50"
+                      >
+                        <BellRing className="h-3.5 w-3.5 text-amber-600" />
+                        Buat Reminder
+                      </Button>
+
                       <Button
                         variant="ghost"
                         size="icon"

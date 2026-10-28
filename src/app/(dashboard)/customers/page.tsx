@@ -13,9 +13,11 @@ import { useCustomers } from "@/features/customers/hooks/use-customers";
 import { CustomerWithPriority } from "@/features/customers/services/customer.service";
 import { ErrorBanner } from "@/components/shared/error-banner";
 import { AssignClassDialog } from "@/features/bookings/components/assign-class-dialog";
+import { CreateReminderDialog } from "@/features/reminders/components/create-reminder-dialog";
 import { useBookings } from "@/features/bookings/hooks/use-bookings";
 import { BookingWithSchedule } from "@/features/bookings/repositories/booking.repository";
 import { Schedule } from "@/types/database.types";
+import { ReminderSchemaInput } from "@/features/reminders/schemas/reminder.schema";
 
 export default function CustomersPage() {
   const {
@@ -44,6 +46,11 @@ export default function CustomersPage() {
   const [customerBookings, setCustomerBookings] = useState<
     Record<string, BookingWithSchedule[]>
   >({});
+
+  // State Reminder Modal
+  const [isReminderOpen, setIsReminderOpen] = useState(false);
+  const [customerForReminder, setCustomerForReminder] =
+    useState<CustomerWithPriority | null>(null);
 
   // Fetch daftar jadwal kelas untuk dropdown modal pendaftaran
   useEffect(() => {
@@ -106,6 +113,7 @@ export default function CustomersPage() {
   const handleFetchCustomerBookings = async (customerId: string) => {
     const list = await getCustomerSchedules(customerId);
     setCustomerBookings((prev) => ({ ...prev, [customerId]: list }));
+    return list;
   };
 
   // Handler Buka Modal Assign Class
@@ -127,6 +135,37 @@ export default function CustomersPage() {
     }
   };
 
+  // Handler Buka Modal Create Reminder
+  const handleOpenReminder = async (customer: CustomerWithPriority) => {
+    setCustomerForReminder(customer);
+    if (!customerBookings[customer.id]) {
+      await handleFetchCustomerBookings(customer.id);
+    }
+    setIsReminderOpen(true);
+  };
+
+  // Handler Submit Create Reminder
+  const handleReminderSubmit = async (data: ReminderSchemaInput) => {
+    try {
+      const res = await fetch("/api/reminders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Gagal membuat log pengingat");
+      }
+
+      toast.success("Pengingat berhasil dibuat");
+      setIsReminderOpen(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
+      toast.error(msg);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -136,8 +175,8 @@ export default function CustomersPage() {
             Data Customer
           </h1>
           <p className="text-sm text-slate-500">
-            Kelola data pelanggan, pantau rasio kehadiran, dan kelola
-            pendaftaran kelas.
+            Kelola data pelanggan, pantau rasio kehadiran, dan buat pengingat
+            jadwal kelas.
           </p>
         </div>
         <Button
@@ -167,6 +206,7 @@ export default function CustomersPage() {
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
           onAssignClass={handleOpenAssign}
+          onCreateReminder={handleOpenReminder}
           customerBookings={customerBookings}
           onFetchCustomerBookings={handleFetchCustomerBookings}
         />
@@ -186,6 +226,18 @@ export default function CustomersPage() {
         customer={customerForAssign}
         schedules={schedules}
         onSubmit={handleAssignSubmit}
+      />
+
+      <CreateReminderDialog
+        isOpen={isReminderOpen}
+        onClose={() => setIsReminderOpen(false)}
+        customer={customerForReminder}
+        customerBookings={
+          customerForReminder
+            ? customerBookings[customerForReminder.id] || []
+            : []
+        }
+        onSubmit={handleReminderSubmit}
       />
     </div>
   );

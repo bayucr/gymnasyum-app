@@ -8,22 +8,22 @@ export class ReminderRepository {
       .from("reminder_logs")
       .select(
         `
-    *,
-    customers (
-      id,
-      name,
-      phone,
-      segment,
-      status,
-      attendance_rate
-    ),
-    schedules (
-      id,
-      class_name,
-      datetime,
-      quota
-    )
-  `,
+        *,
+        customers (
+          id,
+          name,
+          phone,
+          segment,
+          status,
+          attendance_rate
+        ),
+        schedules (
+          id,
+          class_name,
+          datetime,
+          quota
+        )
+      `,
       )
       .order("created_at", { ascending: false });
 
@@ -59,8 +59,8 @@ export class ReminderRepository {
       .select(
         `
         *,
-        customers (name, phone, cancellation_count, attendance_rate),
-        schedules (class_name, datetime)
+        customers (id, name, phone, attendance_rate),
+        schedules (id, class_name, datetime)
       `,
       )
       .gte("schedules.datetime", startOfDay)

@@ -11,12 +11,30 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Send } from "lucide-react";
+import { formatPhoneForWA } from "../utils";
+
+interface ReminderLogItem {
+  id: string;
+  customer_id: string;
+  schedule_id: string;
+  draft_message: string | null;
+  status: string;
+  priority: string;
+  customers?: {
+    id: string;
+    name: string;
+    phone: string;
+  } | null;
+  schedules?: {
+    id: string;
+    class_name: string;
+    datetime: string;
+  } | null;
+}
 
 interface ReminderTableProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  reminders: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  onEdit: (reminder: any) => void;
+  reminders: ReminderLogItem[];
+  onEdit: (reminder: ReminderLogItem) => void;
   onDelete: (id: string) => void;
 }
 
@@ -28,8 +46,8 @@ export function ReminderTable({
   if (reminders.length === 0) {
     return (
       <div className="p-8 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
-        Belum ada log pengingat. Klik Buat Log Pengingat untuk mencatat draf
-        pesan baru.
+        Belum ada log pengingat. Klik ikon pengingat di tabel customer untuk
+        mencatat draf pesan baru.
       </div>
     );
   }
@@ -38,25 +56,25 @@ export function ReminderTable({
     switch (status) {
       case "Sent":
         return (
-          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+          <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none">
             Sent
           </Badge>
         );
       case "Responded":
         return (
-          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100">
+          <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-none">
             Responded
           </Badge>
         );
       case "No Response":
         return (
-          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100">
+          <Badge className="bg-rose-100 text-rose-700 hover:bg-rose-100 border-none">
             No Response
           </Badge>
         );
       default:
         return (
-          <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+          <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100 border-none">
             Scheduled
           </Badge>
         );
@@ -96,8 +114,11 @@ export function ReminderTable({
   };
 
   const handleOpenWhatsApp = (phone?: string, message?: string) => {
-    if (!phone) return alert("Nomor HP tidak tersedia");
-    const cleanPhone = phone.replace(/[^0-9]/g, "");
+    if (!phone) {
+      alert("Nomor WhatsApp tidak tersedia");
+      return;
+    }
+    const cleanPhone = formatPhoneForWA(phone);
     const encodedMessage = encodeURIComponent(message || "");
     window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, "_blank");
   };
@@ -117,17 +138,28 @@ export function ReminderTable({
         </TableHeader>
         <TableBody>
           {reminders.map((log) => (
-            <TableRow key={log.id}>
+            <TableRow key={log.id} className="hover:bg-slate-50/50">
               <TableCell className="font-medium text-slate-900">
                 <div>{log.customers?.name || "Customer N/A"}</div>
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-slate-500 font-normal">
                   {log.customers?.phone || "-"}
                 </div>
               </TableCell>
               <TableCell className="text-slate-600">
-                {log.schedules?.class_name || "Kelas N/A"}
+                <div>{log.schedules?.class_name || "Kelas N/A"}</div>
+                {log.schedules?.datetime && (
+                  <div className="text-xs text-slate-400">
+                    {new Date(log.schedules.datetime).toLocaleString("id-ID", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                )}
               </TableCell>
-              <TableCell className="max-w-[200px] truncate text-slate-600">
+              <TableCell className="max-w-[280px] truncate text-slate-600 text-xs">
                 {log.draft_message || "-"}
               </TableCell>
               <TableCell>{getPriorityBadge(log.priority)}</TableCell>
@@ -140,7 +172,7 @@ export function ReminderTable({
                     onClick={() =>
                       handleOpenWhatsApp(
                         log.customers?.phone,
-                        log.draft_message,
+                        log.draft_message || "",
                       )
                     }
                     title="Kirim via WhatsApp"

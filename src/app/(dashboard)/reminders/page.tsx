@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus, BellRing } from "lucide-react";
 import { ReminderTable } from "@/features/reminders/components/reminder-table";
@@ -18,43 +19,51 @@ export default function RemindersPage() {
   const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchReminders = async () => {
+  // Refetch manual untuk aksi setelah mutasi (create/edit/delete)
+  const refetchReminders = useCallback(async () => {
     try {
       const res = await fetch("/api/reminders");
       const json = await res.json();
-      if (json.data) {
-        setReminders(json.data);
-      }
+      if (!res.ok)
+        throw new Error(json.error || "Gagal mengambil data pengingat");
+      setReminders(json.data || []);
     } catch (err) {
-      console.error("Gagal mengambil log pengingat:", err);
+      const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Effect untuk inisialisasi awal saat komponen di-mount
   useEffect(() => {
-    let isSubscribed = true;
+    let ignore = false;
 
-    const init = async () => {
+    async function initData() {
       try {
         const res = await fetch("/api/reminders");
         const json = await res.json();
-        if (isSubscribed && json.data) {
-          setReminders(json.data);
+        if (!ignore) {
+          if (!res.ok)
+            throw new Error(json.error || "Gagal mengambil data pengingat");
+          setReminders(json.data || []);
         }
       } catch (err) {
-        console.error("Gagal mengambil log pengingat:", err);
+        if (!ignore) {
+          const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
+          toast.error(msg);
+        }
       } finally {
-        if (isSubscribed) {
+        if (!ignore) {
           setLoading(false);
         }
       }
-    };
+    }
 
-    init();
+    initData();
 
     return () => {
-      isSubscribed = false;
+      ignore = true;
     };
   }, []);
 
@@ -76,14 +85,17 @@ export default function RemindersPage() {
     try {
       setLoading(true);
       const res = await fetch(`/api/reminders/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        await fetchReminders();
-      } else {
-        const json = await res.json();
-        alert(`Gagal menghapus: ${json.error || "Terjadi kesalahan"}`);
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || "Gagal menghapus log pengingat");
       }
+
+      toast.success("Log pengingat berhasil dihapus");
+      await refetchReminders();
     } catch (err) {
-      console.error("Gagal menghapus log:", err);
+      const msg = err instanceof Error ? err.message : "Gagal menghapus log";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -106,16 +118,19 @@ export default function RemindersPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        alert(`Gagal menyimpan: ${json.error || "Terjadi kesalahan server"}`);
-        return;
+        throw new Error(json.error || "Terjadi kesalahan server");
       }
 
+      toast.success(
+        selectedReminder
+          ? "Log pengingat berhasil diperbarui"
+          : "Log pengingat baru berhasil dibuat",
+      );
       setIsDialogOpen(false);
-      setLoading(true);
-      await fetchReminders();
+      await refetchReminders();
     } catch (err) {
-      console.error("Gagal menyimpan log:", err);
-      alert("Gagal terhubung ke server.");
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan log";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

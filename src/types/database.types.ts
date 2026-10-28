@@ -33,3 +33,12 @@ export interface ReminderLog {
   customers?: Customer;
   schedules?: Schedule;
 }
+
+export interface Booking {
+  id: string;
+  customer_id: string;
+  schedule_id: string;
+  status: "Booked" | "Attended" | "Cancelled";
+  created_at: string;
+  updated_at: string;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus, Users } from "lucide-react";
@@ -12,6 +12,10 @@ import {
 import { useCustomers } from "@/features/customers/hooks/use-customers";
 import { CustomerWithPriority } from "@/features/customers/services/customer.service";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { AssignClassDialog } from "@/features/bookings/components/assign-class-dialog";
+import { useBookings } from "@/features/bookings/hooks/use-bookings";
+import { BookingWithSchedule } from "@/features/bookings/repositories/booking.repository";
+import { Schedule } from "@/types/database.types";
 
 export default function CustomersPage() {
   const {
@@ -24,10 +28,36 @@ export default function CustomersPage() {
     deleteCustomer,
   } = useCustomers();
 
+  const { getCustomerSchedules, createBooking } = useBookings();
+
+  // State Form Edit/Create Customer
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] =
     useState<CustomerWithPriority | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // State Assign Class Modal & Expandable Bookings
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [customerForAssign, setCustomerForAssign] =
+    useState<CustomerWithPriority | null>(null);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [customerBookings, setCustomerBookings] = useState<
+    Record<string, BookingWithSchedule[]>
+  >({});
+
+  // Fetch daftar jadwal kelas untuk dropdown modal pendaftaran
+  useEffect(() => {
+    async function fetchSchedules() {
+      try {
+        const res = await fetch("/api/schedules");
+        const json = await res.json();
+        if (res.ok) setSchedules(json.data || []);
+      } catch {
+        // Fallback jika fetch gagal
+      }
+    }
+    fetchSchedules();
+  }, []);
 
   const handleOpenCreate = () => {
     setSelectedCustomer(null);
@@ -72,6 +102,31 @@ export default function CustomersPage() {
     }
   };
 
+  // Handler Expand Row (Fetch List Kelas Customer)
+  const handleFetchCustomerBookings = async (customerId: string) => {
+    const list = await getCustomerSchedules(customerId);
+    setCustomerBookings((prev) => ({ ...prev, [customerId]: list }));
+  };
+
+  // Handler Buka Modal Assign Class
+  const handleOpenAssign = (customer: CustomerWithPriority) => {
+    setCustomerForAssign(customer);
+    setIsAssignOpen(true);
+  };
+
+  // Handler Submit Assign Class
+  const handleAssignSubmit = async (customerId: string, scheduleId: string) => {
+    try {
+      await createBooking(customerId, scheduleId);
+      toast.success("Customer berhasil didaftarkan ke kelas");
+      // Refresh list booking yang tampil pada expandable row
+      handleFetchCustomerBookings(customerId);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Gagal mendaftar kelas";
+      toast.error(msg);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -81,8 +136,8 @@ export default function CustomersPage() {
             Data Customer
           </h1>
           <p className="text-sm text-slate-500">
-            Kelola data pelanggan, pantau rasio kehadiran, dan tingkat prioritas
-            follow-up.
+            Kelola data pelanggan, pantau rasio kehadiran, dan kelola
+            pendaftaran kelas.
           </p>
         </div>
         <Button
@@ -111,6 +166,9 @@ export default function CustomersPage() {
           customers={customers}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
+          onAssignClass={handleOpenAssign}
+          customerBookings={customerBookings}
+          onFetchCustomerBookings={handleFetchCustomerBookings}
         />
       )}
 
@@ -120,6 +178,14 @@ export default function CustomersPage() {
         onSubmit={handleSubmit}
         initialData={selectedCustomer}
         isSubmitting={isSubmitting}
+      />
+
+      <AssignClassDialog
+        isOpen={isAssignOpen}
+        onClose={() => setIsAssignOpen(false)}
+        customer={customerForAssign}
+        schedules={schedules}
+        onSubmit={handleAssignSubmit}
       />
     </div>
   );

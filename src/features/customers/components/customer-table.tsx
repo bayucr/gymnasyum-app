@@ -49,7 +49,6 @@ export function CustomerTable({
             <TableHead className="font-semibold">Segmen</TableHead>
             <TableHead className="font-semibold">Status</TableHead>
             <TableHead className="font-semibold">Kehadiran</TableHead>
-            <TableHead className="font-semibold">Pembatalan</TableHead>
             <TableHead className="font-semibold">Prioritas Follow-up</TableHead>
             <TableHead className="text-right font-semibold">Aksi</TableHead>
           </TableRow>
@@ -79,9 +78,6 @@ export function CustomerTable({
               </TableCell>
               <TableCell className="text-slate-700 font-medium">
                 {Math.round(customer.attendance_rate * 100)}%
-              </TableCell>
-              <TableCell className="text-slate-700">
-                {customer.cancellation_count}x
               </TableCell>
               <TableCell>
                 {customer.priorityLevel === "High" && (

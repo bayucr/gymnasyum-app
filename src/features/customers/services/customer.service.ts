@@ -14,20 +14,13 @@ export interface CustomerWithPriority extends Customer {
   priorityLevel: FollowUpPriority;
 }
 
-/**
- * Mengkalkulasi tingkat prioritas follow-up berdasarkan riwayat aktivitas customer:
- * - High  : Pembatalan >= 3 x  ATAU Kehadiran < 50%
- * - Medium: Pembatalan 1-2 x  ATAU Kehadiran 50% - 79%
- * - Low   : Pembatalan 0 x    DAN Kehadiran >= 80%
- */
 export function calculatePriorityLevel(
   attendanceRate: number,
-  cancellationCount: number,
 ): FollowUpPriority {
-  if (cancellationCount >= 3 || attendanceRate < 0.5) {
+  if (attendanceRate < 0.5) {
     return "High";
   }
-  if (cancellationCount >= 1 || attendanceRate < 0.8) {
+  if (attendanceRate < 0.8) {
     return "Medium";
   }
   return "Low";
@@ -41,10 +34,7 @@ export class CustomerService {
 
     return customers.map((c) => ({
       ...c,
-      priorityLevel: calculatePriorityLevel(
-        c.attendance_rate,
-        c.cancellation_count,
-      ),
+      priorityLevel: calculatePriorityLevel(c.attendance_rate),
     }));
   }
 
@@ -52,10 +42,7 @@ export class CustomerService {
     const customer = await this.repo.findById(id);
     return {
       ...customer,
-      priorityLevel: calculatePriorityLevel(
-        customer.attendance_rate,
-        customer.cancellation_count,
-      ),
+      priorityLevel: calculatePriorityLevel(customer.attendance_rate),
     };
   }
 

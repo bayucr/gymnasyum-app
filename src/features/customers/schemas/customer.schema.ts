@@ -1,9 +1,5 @@
 import { z } from "zod";
 
-/**
- * Helper terpusat untuk menormalisasi nomor HP ke format standar 62...
- * Contoh: "081234567890" -> "6281234567890", "+6281234567890" -> "6281234567890"
- */
 export function normalizePhoneNumber(phone: string): string {
   const cleaned = phone.replace(/[^0-9]/g, "");
   if (cleaned.startsWith("0")) {
@@ -26,7 +22,6 @@ export const customerSchema = z.object({
   }),
   status: z.enum(["Active", "Inactive"]).default("Active"),
   attendance_rate: z.number().min(0).max(1).default(1.0),
-  cancellation_count: z.number().min(0).default(0),
 });
 
 export const updateCustomerSchema = customerSchema.partial();

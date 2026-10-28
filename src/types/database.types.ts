@@ -10,7 +10,6 @@ export interface Customer {
   segment: SegmentType;
   status: CustomerStatus;
   attendance_rate: number;
-  cancellation_count: number;
   created_at?: string;
 }
 

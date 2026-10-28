@@ -50,7 +50,6 @@ export function CustomerFormDialog({
       segment: "Umum" as const,
       status: "Active" as const,
       attendance_rate: 1.0,
-      cancellation_count: 0,
     },
   });
 
@@ -64,6 +63,11 @@ export function CustomerFormDialog({
     name: "status",
   });
 
+  const attendanceRateValue = useWatch({
+    control: form.control,
+    name: "attendance_rate",
+  });
+
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -72,7 +76,6 @@ export function CustomerFormDialog({
         segment: initialData.segment || "Umum",
         status: initialData.status || "Active",
         attendance_rate: initialData.attendance_rate ?? 1.0,
-        cancellation_count: initialData.cancellation_count ?? 0,
       });
     } else {
       form.reset({
@@ -81,7 +84,6 @@ export function CustomerFormDialog({
         segment: "Umum",
         status: "Active",
         attendance_rate: 1.0,
-        cancellation_count: 0,
       });
     }
   }, [initialData, form, isOpen]);
@@ -178,48 +180,27 @@ export function CustomerFormDialog({
             </div>
           </div>
 
-          {/* Field khusus override riwayat, hanya tampil pada mode Edit */}
           {initialData && (
-            <div className="pt-2 border-t border-slate-100 grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <Label htmlFor="attendance_rate_pct">Kehadiran (%)</Label>
-                <Input
-                  id="attendance_rate_pct"
-                  type="number"
-                  min={0}
-                  max={100}
-                  placeholder="100"
-                  value={Math.round((form.watch("attendance_rate") ?? 1) * 100)}
-                  onChange={(e) => {
-                    const pct = parseFloat(e.target.value) || 0;
-                    const clamped = Math.min(100, Math.max(0, pct));
-                    form.setValue("attendance_rate", clamped / 100);
-                  }}
-                />
-                {form.formState.errors.attendance_rate && (
-                  <p className="text-xs text-rose-500">
-                    {form.formState.errors.attendance_rate.message}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1">
-                <Label htmlFor="cancellation_count">Jumlah Pembatalan</Label>
-                <Input
-                  id="cancellation_count"
-                  type="number"
-                  min={0}
-                  placeholder="0"
-                  {...form.register("cancellation_count", {
-                    valueAsNumber: true,
-                  })}
-                />
-                {form.formState.errors.cancellation_count && (
-                  <p className="text-xs text-rose-500">
-                    {form.formState.errors.cancellation_count.message}
-                  </p>
-                )}
-              </div>
+            <div className="pt-2 border-t border-slate-100 space-y-1">
+              <Label htmlFor="attendance_rate_pct">Tingkat Kehadiran (%)</Label>
+              <Input
+                id="attendance_rate_pct"
+                type="number"
+                min={0}
+                max={100}
+                placeholder="100"
+                value={Math.round((attendanceRateValue ?? 1) * 100)}
+                onChange={(e) => {
+                  const pct = parseFloat(e.target.value) || 0;
+                  const clamped = Math.min(100, Math.max(0, pct));
+                  form.setValue("attendance_rate", clamped / 100);
+                }}
+              />
+              {form.formState.errors.attendance_rate && (
+                <p className="text-xs text-rose-500">
+                  {form.formState.errors.attendance_rate.message}
+                </p>
+              )}
             </div>
           )}
 

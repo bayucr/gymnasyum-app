@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle, BellRing } from "lucide-react";
+import { AlertCircle, BellRing, CalendarDays } from "lucide-react";
 import { CustomerWithPriority } from "@/features/customers/services/customer.service";
 import { BookingWithSchedule } from "@/features/bookings/repositories/booking.repository";
 import { generateWAMessage } from "../utils";
@@ -106,6 +106,9 @@ export function CreateReminderDialog({
   };
 
   const hasNoClasses = customerBookings.length === 0;
+  const selectedBooking = customerBookings.find(
+    (b) => b.schedule_id === selectedScheduleId,
+  );
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -141,38 +144,58 @@ export function CreateReminderDialog({
               </p>
             </div>
           ) : (
-            /* Dropdown Kelas khusus kelas yang diambil customer */
-            <div className="space-y-1">
-              <Label>Pilih Kelas</Label>
-              <Select
-                value={selectedScheduleId}
-                onValueChange={(val) => {
-                  if (val) form.setValue("schedule_id", val);
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih kelas customer..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {customerBookings.map((b) => (
-                    <SelectItem key={b.id} value={b.schedule_id}>
-                      {b.schedules.class_name} (
-                      {new Date(b.schedules.datetime).toLocaleString("id-ID", {
-                        weekday: "short",
+            <div className="space-y-2">
+              <div className="space-y-1">
+                <Label>Pilih Kelas</Label>
+                <Select
+                  value={selectedScheduleId}
+                  onValueChange={(val) => {
+                    if (val) form.setValue("schedule_id", val);
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih kelas customer..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customerBookings.map((b) => (
+                      <SelectItem key={b.id} value={b.schedule_id}>
+                        {b.schedules.class_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.formState.errors.schedule_id && (
+                  <p className="text-xs text-rose-500">
+                    {form.formState.errors.schedule_id.message}
+                  </p>
+                )}
+              </div>
+
+              {/* Info Card Ringkas Detail Kelas Terpilih */}
+              {selectedBooking?.schedules && (
+                <div className="rounded-md border border-emerald-200 bg-emerald-50/70 p-3 text-xs space-y-1">
+                  <div className="flex items-center gap-1.5 font-semibold text-emerald-900">
+                    <CalendarDays className="h-3.5 w-3.5 text-emerald-700" />
+                    <span>Detail Kelas Terpilih:</span>
+                  </div>
+                  <div className="text-emerald-800 pl-5">
+                    <p className="font-medium">
+                      {selectedBooking.schedules.class_name}
+                    </p>
+                    <p className="text-emerald-700">
+                      {new Date(
+                        selectedBooking.schedules.datetime,
+                      ).toLocaleString("id-ID", {
+                        weekday: "long",
                         day: "numeric",
-                        month: "short",
+                        month: "long",
                         hour: "2-digit",
                         minute: "2-digit",
-                      })}
-                      )
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {form.formState.errors.schedule_id && (
-                <p className="text-xs text-rose-500">
-                  {form.formState.errors.schedule_id.message}
-                </p>
+                      })}{" "}
+                      WIB
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           )}

@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { User, CalendarDays } from "lucide-react";
 import {
   Customer,
   Schedule,
@@ -130,6 +131,9 @@ export function ReminderFormDialog({
     form.reset();
   };
 
+  const selectedCustomer = customers.find((c) => c.id === customerIdValue);
+  const selectedSchedule = schedules.find((s) => s.id === scheduleIdValue);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
@@ -196,6 +200,40 @@ export function ReminderFormDialog({
               )}
             </div>
           </div>
+
+          {/* Info Card Terpilih untuk Form Log Pengingat */}
+          {(selectedCustomer || selectedSchedule) && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs space-y-1 text-slate-700">
+              {selectedCustomer && (
+                <div className="flex items-center gap-1.5 font-medium">
+                  <User className="h-3.5 w-3.5 text-slate-500" />
+                  <span>
+                    Customer: <strong>{selectedCustomer.name}</strong> (
+                    {selectedCustomer.phone})
+                  </span>
+                </div>
+              )}
+              {selectedSchedule && (
+                <div className="flex items-center gap-1.5 font-medium">
+                  <CalendarDays className="h-3.5 w-3.5 text-slate-500" />
+                  <span>
+                    Kelas: <strong>{selectedSchedule.class_name}</strong> -{" "}
+                    {new Date(selectedSchedule.datetime).toLocaleString(
+                      "id-ID",
+                      {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    )}{" "}
+                    WIB
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label htmlFor="draft_message">Draf Pesan WhatsApp</Label>

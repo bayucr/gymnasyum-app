@@ -90,7 +90,12 @@ export function AssignClassDialog({
               onValueChange={(val) => setSelectedScheduleId(val ?? "")}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Pilih kelas..." />
+                <SelectValue placeholder="Pilih kelas...">
+                  {selectedScheduleId
+                    ? schedules.find((s) => s.id === selectedScheduleId)
+                        ?.class_name
+                    : null}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {schedules.map((s) => (

@@ -1,3 +1,4 @@
+import { createBookingSchema } from "@/features/bookings/schemas/booking.schema";
 import { bookingService } from "@/features/bookings/services/booking.service";
 import { handleApiError, apiSuccess } from "@/lib/api-response";
 import { ValidationError } from "@/lib/errors";
@@ -5,14 +6,16 @@ import { ValidationError } from "@/lib/errors";
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { customer_id, schedule_id } = body;
 
-    if (!customer_id || !schedule_id) {
-      throw new ValidationError("customer_id dan schedule_id wajib diisi", {
-        customer_id: !customer_id ? ["Customer ID wajib diisi"] : undefined,
-        schedule_id: !schedule_id ? ["Schedule ID wajib diisi"] : undefined,
-      });
+    const validation = createBookingSchema.safeParse(body);
+    if (!validation.success) {
+      throw new ValidationError(
+        "Validasi data booking gagal",
+        validation.error.flatten().fieldErrors,
+      );
     }
+
+    const { customer_id, schedule_id } = validation.data;
 
     const newBooking = await bookingService.createBooking(
       customer_id,

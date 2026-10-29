@@ -27,6 +27,30 @@ export class BookingRepository {
     return (data as unknown as BookingWithSchedule[]) || [];
   }
 
+  async getScheduleQuota(scheduleId: string): Promise<number | null> {
+    const { data, error } = await supabase
+      .from("schedules")
+      .select("quota")
+      .eq("id", scheduleId)
+      .single();
+
+    if (error || !data) return null;
+    return data.quota;
+  }
+
+  async countByScheduleId(scheduleId: string): Promise<number> {
+    const { count, error } = await supabase
+      .from("bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("schedule_id", scheduleId);
+
+    if (error) {
+      throw new DatabaseError("Gagal menghitung jumlah peserta kelas", error);
+    }
+
+    return count || 0;
+  }
+
   async findCustomersByScheduleId(
     scheduleId: string,
   ): Promise<BookingWithCustomer[]> {

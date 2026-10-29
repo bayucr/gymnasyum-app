@@ -5,6 +5,7 @@ import {
   BookingWithCustomer,
 } from "../repositories/booking.repository";
 import { Booking } from "@/types/database.types";
+import { ValidationError } from "@/lib/errors";
 
 export class BookingService {
   constructor(private repo: BookingRepository = bookingRepository) {}
@@ -25,6 +26,19 @@ export class BookingService {
     customerId: string,
     scheduleId: string,
   ): Promise<Booking> {
+    // 1. Cek ketersediaan jadwal & kuota
+    const quota = await this.repo.getScheduleQuota(scheduleId);
+    if (quota === null) {
+      throw new ValidationError("Jadwal kelas tidak ditemukan");
+    }
+
+    // 2. Hitung jumlah pendaftar saat ini
+    const currentCount = await this.repo.countByScheduleId(scheduleId);
+    if (currentCount >= quota) {
+      throw new ValidationError("Kelas ini sudah penuh (kuota telah tercapai)");
+    }
+
+    // 3. Simpan booking
     return await this.repo.create({
       customer_id: customerId,
       schedule_id: scheduleId,

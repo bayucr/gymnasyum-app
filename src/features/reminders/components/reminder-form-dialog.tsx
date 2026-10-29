@@ -26,6 +26,7 @@ import {
   Schedule,
   ReminderStatus,
   PriorityLevel,
+  ReminderLog,
 } from "@/types/database.types";
 
 const reminderSchema = z.object({
@@ -46,8 +47,7 @@ interface ReminderFormDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: ReminderFormValues) => Promise<void>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  initialData?: any | null;
+  initialData?: ReminderLog | null;
   isSubmitting: boolean;
 }
 
@@ -95,8 +95,14 @@ export function ReminderFormDialog({
   useEffect(() => {
     if (isOpen) {
       Promise.all([
-        fetch("/api/customers").then((res) => res.json()),
-        fetch("/api/schedules").then((res) => res.json()),
+        fetch("/api/customers").then((res) => {
+          if (!res.ok) throw new Error("Gagal mengambil data customer");
+          return res.json();
+        }),
+        fetch("/api/schedules").then((res) => {
+          if (!res.ok) throw new Error("Gagal mengambil data jadwal");
+          return res.json();
+        }),
       ])
         .then(([custData, schedData]) => {
           if (custData.data) setCustomers(custData.data);

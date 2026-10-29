@@ -14,29 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, Send, Eye } from "lucide-react";
 import { formatPhoneForWA } from "../utils";
 import { MessagePreviewDialog } from "./message-preview-dialog";
-
-interface ReminderLogItem {
-  id: string;
-  customer_id: string;
-  schedule_id: string;
-  draft_message: string | null;
-  status: string;
-  priority: string;
-  customers?: {
-    id: string;
-    name: string;
-    phone: string;
-  } | null;
-  schedules?: {
-    id: string;
-    class_name: string;
-    datetime: string;
-  } | null;
-}
+import { ReminderLog } from "@/types/database.types";
 
 interface ReminderTableProps {
-  reminders: ReminderLogItem[];
-  onEdit: (reminder: ReminderLogItem) => void;
+  reminders: ReminderLog[];
+  onEdit: (reminder: ReminderLog) => void;
   onDelete: (id: string) => void;
 }
 
@@ -52,7 +34,7 @@ export function ReminderTable({
     message?: string;
   } | null>(null);
 
-  const handleOpenPreview = (log: ReminderLogItem) => {
+  const handleOpenPreview = (log: ReminderLog) => {
     setPreviewData({
       customerName: log.customers?.name,
       phone: log.customers?.phone,

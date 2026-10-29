@@ -39,16 +39,14 @@ export default function DashboardPage() {
           return new Date(s.datetime).toDateString() === todayStr;
         }).length;
 
-        // 3. Pending Reminders (Draft / Failed)
+        // 3. Pending Reminders (Scheduled)
         const pendingRemCount = reminders.filter(
-          (r: { status: string }) =>
-            r.status === "Draft" || r.status === "Failed",
+          (r: { status: string }) => r.status === "Scheduled",
         ).length;
 
-        // 4. High Risk Customers (Batal > 3 kali atau Kehadiran < 50%)
+        // 4. High Risk Customers (Kehadiran < 50%)
         const highRiskCount = customers.filter(
-          (c: { cancellation_count: number; attendance_rate: number }) =>
-            (c.cancellation_count ?? 0) >= 3 || (c.attendance_rate ?? 1) < 0.5,
+          (c: { attendance_rate: number }) => (c.attendance_rate ?? 1) < 0.5,
         ).length;
 
         setStats({

@@ -112,7 +112,9 @@ export default function CustomersPage() {
   // Handler Expand Row (Fetch List Kelas Customer)
   const handleFetchCustomerBookings = async (customerId: string) => {
     const list = await getCustomerSchedules(customerId);
-    setCustomerBookings((prev) => ({ ...prev, [customerId]: list }));
+    if (list) {
+      setCustomerBookings((prev) => ({ ...prev, [customerId]: list }));
+    }
     return list;
   };
 

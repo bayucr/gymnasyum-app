@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Schedule } from "@/types/database.types";
+import { formatToLocalDatetimeInput, formatLocalToUTCISO } from "../utils";
 
 const scheduleSchema = z.object({
   class_name: z.string().min(2, "Nama kelas minimal 2 karakter"),
@@ -51,14 +52,9 @@ export function ScheduleFormDialog({
 
   useEffect(() => {
     if (initialData) {
-      // Format ISO string ke format yang diterima input datetime-local (YYYY-MM-DDThh:mm)
-      const formattedDate = initialData.datetime
-        ? new Date(initialData.datetime).toISOString().slice(0, 16)
-        : "";
-
       form.reset({
         class_name: initialData.class_name,
-        datetime: formattedDate,
+        datetime: formatToLocalDatetimeInput(initialData.datetime),
         quota: initialData.quota,
       });
     } else {
@@ -71,8 +67,7 @@ export function ScheduleFormDialog({
   }, [initialData, form, isOpen]);
 
   const handleSubmit = async (values: ScheduleFormValues) => {
-    // Convert nilai datetime dari input lokal ke format ISO string UTC untuk Supabase
-    const isoDatetime = new Date(values.datetime).toISOString();
+    const isoDatetime = formatLocalToUTCISO(values.datetime);
     await onSubmit({ ...values, datetime: isoDatetime });
     form.reset();
   };

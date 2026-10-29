@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { BookingWithSchedule } from "../repositories/booking.repository";
+import { toast } from "sonner";
 
 export function useBookings() {
   const [loading, setLoading] = useState(false);
@@ -9,16 +10,18 @@ export function useBookings() {
 
   const getCustomerSchedules = useCallback(async (customerId: string) => {
     setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`/api/customers/${customerId}/schedules`);
       const json = await res.json();
+
       if (!res.ok)
         throw new Error(json.error || "Gagal memuat jadwal customer");
       return (json.data as BookingWithSchedule[]) || [];
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
-      setError(msg);
-      return [];
+      toast.error(msg);
+      return null;
     } finally {
       setLoading(false);
     }

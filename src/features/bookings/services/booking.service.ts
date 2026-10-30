@@ -32,13 +32,19 @@ export class BookingService {
       throw new ValidationError("Jadwal kelas tidak ditemukan");
     }
 
-    // 2. Hitung jumlah pendaftar saat ini
+    // 2. Cek pendaftaran ganda (Cegah Error 500 / unique constraint violation)
+    const existing = await this.repo.findSchedulesByCustomerId(customerId);
+    if (existing.some((b) => b.schedule_id === scheduleId)) {
+      throw new ValidationError("Customer sudah terdaftar pada kelas ini");
+    }
+
+    // 3. Hitung jumlah pendaftar saat ini
     const currentCount = await this.repo.countByScheduleId(scheduleId);
     if (currentCount >= quota) {
       throw new ValidationError("Kelas ini sudah penuh (kuota telah tercapai)");
     }
 
-    // 3. Simpan booking
+    // 4. Simpan booking
     return await this.repo.create({
       customer_id: customerId,
       schedule_id: scheduleId,

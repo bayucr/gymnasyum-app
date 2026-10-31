@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus, Users } from "lucide-react";
@@ -16,10 +16,12 @@ import { AssignClassDialog } from "@/features/bookings/components/assign-class-d
 import { CreateReminderDialog } from "@/features/reminders/components/create-reminder-dialog";
 import { useBookings } from "@/features/bookings/hooks/use-bookings";
 import { BookingWithSchedule } from "@/features/bookings/repositories/booking.repository";
-import { Schedule } from "@/types/database.types";
 import { ReminderSchemaInput } from "@/features/reminders/schemas/reminder.schema";
+import { useSchedules } from "@/features/schedules/hooks/use-schedules";
+import { useReminders } from "@/features/reminders/hooks/use-reminders";
 
 export default function CustomersPage() {
+  // 1. Data Hooks
   const {
     customers,
     loading,
@@ -30,52 +32,41 @@ export default function CustomersPage() {
     deleteCustomer,
   } = useCustomers();
 
+  const { schedules } = useSchedules();
+  const { createReminder } = useReminders();
   const { getCustomerSchedules, createBooking } = useBookings();
 
-  // State Form Edit/Create Customer
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] =
-    useState<CustomerWithPriority | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  // 2. Consolidated UI State for Modals
+  const [activeModal, setActiveModal] = useState<{
+    type: "customer" | "assign" | "reminder" | null;
+    customer: CustomerWithPriority | null;
+  }>({ type: null, customer: null });
 
-  // State Assign Class Modal & Expandable Bookings
-  const [isAssignOpen, setIsAssignOpen] = useState(false);
-  const [customerForAssign, setCustomerForAssign] =
-    useState<CustomerWithPriority | null>(null);
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [customerBookings, setCustomerBookings] = useState<
     Record<string, BookingWithSchedule[]>
   >({});
 
-  // State Reminder Modal
-  const [isReminderOpen, setIsReminderOpen] = useState(false);
-  const [customerForReminder, setCustomerForReminder] =
-    useState<CustomerWithPriority | null>(null);
+  // 3. Modal Open/Close Handlers
+  const closeModal = () => setActiveModal({ type: null, customer: null });
 
-  // Fetch daftar jadwal kelas untuk dropdown modal pendaftaran
-  useEffect(() => {
-    async function fetchSchedules() {
-      try {
-        const res = await fetch("/api/schedules");
-        const json = await res.json();
-        if (res.ok) setSchedules(json.data || []);
-      } catch {
-        // Fallback jika fetch gagal
-      }
+  const handleOpenCreate = () =>
+    setActiveModal({ type: "customer", customer: null });
+
+  const handleOpenEdit = (customer: CustomerWithPriority) =>
+    setActiveModal({ type: "customer", customer });
+
+  const handleOpenAssign = (customer: CustomerWithPriority) =>
+    setActiveModal({ type: "assign", customer });
+
+  const handleOpenReminder = async (customer: CustomerWithPriority) => {
+    setActiveModal({ type: "reminder", customer });
+    if (!customerBookings[customer.id]) {
+      await handleFetchCustomerBookings(customer.id);
     }
-    fetchSchedules();
-  }, []);
-
-  const handleOpenCreate = () => {
-    setSelectedCustomer(null);
-    setIsDialogOpen(true);
   };
 
-  const handleOpenEdit = (customer: CustomerWithPriority) => {
-    setSelectedCustomer(customer);
-    setIsDialogOpen(true);
-  };
-
+  // 4. CRUD Customer Handlers
   const handleDelete = async (id: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus pelanggan ini?")) return;
 
@@ -89,17 +80,17 @@ export default function CustomersPage() {
     }
   };
 
-  const handleSubmit = async (values: CustomerFormValues) => {
+  const handleSubmitCustomer = async (values: CustomerFormValues) => {
     try {
       setIsSubmitting(true);
-      if (selectedCustomer) {
-        await updateCustomer(selectedCustomer.id, values);
+      if (activeModal.customer) {
+        await updateCustomer(activeModal.customer.id, values);
         toast.success("Data customer berhasil diperbarui");
       } else {
         await createCustomer(values);
         toast.success("Customer baru berhasil ditambahkan");
       }
-      setIsDialogOpen(false);
+      closeModal();
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Gagal menyimpan data";
@@ -109,7 +100,7 @@ export default function CustomersPage() {
     }
   };
 
-  // Handler Expand Row (Fetch List Kelas Customer)
+  // 5. Booking & Expandable Table Handlers
   const handleFetchCustomerBookings = async (customerId: string) => {
     const list = await getCustomerSchedules(customerId);
     if (list) {
@@ -118,50 +109,24 @@ export default function CustomersPage() {
     return list;
   };
 
-  // Handler Buka Modal Assign Class
-  const handleOpenAssign = (customer: CustomerWithPriority) => {
-    setCustomerForAssign(customer);
-    setIsAssignOpen(true);
-  };
-
-  // Handler Submit Assign Class
   const handleAssignSubmit = async (customerId: string, scheduleId: string) => {
     try {
       await createBooking(customerId, scheduleId);
       toast.success("Customer berhasil didaftarkan ke kelas");
-      // Refresh list booking yang tampil pada expandable row
       handleFetchCustomerBookings(customerId);
+      closeModal();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Gagal mendaftar kelas";
       toast.error(msg);
     }
   };
 
-  // Handler Buka Modal Create Reminder
-  const handleOpenReminder = async (customer: CustomerWithPriority) => {
-    setCustomerForReminder(customer);
-    if (!customerBookings[customer.id]) {
-      await handleFetchCustomerBookings(customer.id);
-    }
-    setIsReminderOpen(true);
-  };
-
-  // Handler Submit Create Reminder
+  // 6. Reminder Submit Handler
   const handleReminderSubmit = async (data: ReminderSchemaInput) => {
     try {
-      const res = await fetch("/api/reminders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || "Gagal membuat log pengingat");
-      }
-
+      await createReminder(data);
       toast.success("Pengingat berhasil dibuat");
-      setIsReminderOpen(false);
+      closeModal();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
       toast.error(msg);
@@ -215,28 +180,28 @@ export default function CustomersPage() {
       )}
 
       <CustomerFormDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSubmit={handleSubmit}
-        initialData={selectedCustomer}
+        isOpen={activeModal.type === "customer"}
+        onClose={closeModal}
+        onSubmit={handleSubmitCustomer}
+        initialData={activeModal.customer}
         isSubmitting={isSubmitting}
       />
 
       <AssignClassDialog
-        isOpen={isAssignOpen}
-        onClose={() => setIsAssignOpen(false)}
-        customer={customerForAssign}
+        isOpen={activeModal.type === "assign"}
+        onClose={closeModal}
+        customer={activeModal.customer}
         schedules={schedules}
         onSubmit={handleAssignSubmit}
       />
 
       <CreateReminderDialog
-        isOpen={isReminderOpen}
-        onClose={() => setIsReminderOpen(false)}
-        customer={customerForReminder}
+        isOpen={activeModal.type === "reminder"}
+        onClose={closeModal}
+        customer={activeModal.customer}
         customerBookings={
-          customerForReminder
-            ? customerBookings[customerForReminder.id] || []
+          activeModal.customer
+            ? customerBookings[activeModal.customer.id] || []
             : []
         }
         onSubmit={handleReminderSubmit}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, CalendarDays } from "lucide-react";
 import { ScheduleTable } from "@/features/schedules/components/schedule-table";
@@ -10,55 +10,17 @@ import {
 } from "@/features/schedules/components/schedule-form-dialog";
 import { Schedule } from "@/types/database.types";
 import { toast } from "sonner";
+import { useSchedules } from "@/features/schedules/hooks/use-schedules";
 
 export default function SchedulesPage() {
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { schedules, loading, createSchedule, updateSchedule, deleteSchedule } =
+    useSchedules();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(
     null,
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const fetchSchedules = async () => {
-    try {
-      const res = await fetch("/api/schedules");
-      const json = await res.json();
-      if (json.data) {
-        setSchedules(json.data);
-      }
-    } catch (err) {
-      console.error("Gagal mengambil data jadwal:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const init = async () => {
-      try {
-        const res = await fetch("/api/schedules");
-        const json = await res.json();
-        if (isSubscribed && json.data) {
-          setSchedules(json.data);
-        }
-      } catch (err) {
-        console.error("Gagal mengambil data jadwal:", err);
-      } finally {
-        if (isSubscribed) {
-          setLoading(false);
-        }
-      }
-    };
-
-    init();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, []);
 
   const handleOpenCreate = () => {
     setSelectedSchedule(null);
@@ -74,58 +36,28 @@ export default function SchedulesPage() {
     if (!confirm("Apakah Anda yakin ingin menghapus jadwal kelas ini?")) return;
 
     try {
-      setLoading(true);
-      const res = await fetch(`/api/schedules/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success("Jadwal kelas berhasil dihapus");
-        await fetchSchedules();
-      } else {
-        const json = await res.json();
-        toast.error(`Gagal menghapus: ${json.error || "Terjadi kesalahan"}`);
-      }
+      await deleteSchedule(id);
+      toast.success("Jadwal kelas berhasil dihapus");
     } catch (err) {
-      console.error("Gagal menghapus jadwal:", err);
-      toast.error("Gagal terhubung ke server.");
-    } finally {
-      setLoading(false);
+      const msg = err instanceof Error ? err.message : "Gagal menghapus jadwal";
+      toast.error(msg);
     }
   };
 
   const handleSubmit = async (values: ScheduleFormValues) => {
     try {
       setIsSubmitting(true);
-      const url = selectedSchedule
-        ? `/api/schedules/${selectedSchedule.id}`
-        : "/api/schedules";
-      const method = selectedSchedule ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        toast.error(
-          `Gagal menyimpan: ${json.error || "Terjadi kesalahan server"}`,
-        );
-        return;
+      if (selectedSchedule) {
+        await updateSchedule(selectedSchedule.id, values);
+        toast.success("Jadwal kelas berhasil diperbarui");
+      } else {
+        await createSchedule(values);
+        toast.success("Jadwal kelas baru berhasil ditambahkan");
       }
-
-      toast.success(
-        selectedSchedule
-          ? "Jadwal kelas berhasil diperbarui"
-          : "Jadwal kelas baru berhasil ditambahkan",
-      );
-
       setIsDialogOpen(false);
-      setLoading(true);
-      await fetchSchedules();
     } catch (err) {
-      console.error("Gagal menyimpan jadwal:", err);
-      toast.error("Gagal terhubung ke server");
+      const msg = err instanceof Error ? err.message : "Gagal menyimpan jadwal";
+      toast.error(msg);
     } finally {
       setIsSubmitting(false);
     }

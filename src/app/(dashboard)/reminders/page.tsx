@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Plus, BellRing } from "lucide-react";
@@ -9,71 +9,25 @@ import {
   ReminderFormDialog,
   ReminderFormValues,
 } from "@/features/reminders/components/reminder-form-dialog";
+import { ReminderLog } from "@/types/database.types";
+import { useReminders } from "@/features/reminders/hooks/use-reminders";
 
 export default function RemindersPage() {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [reminders, setReminders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { reminders, loading, createReminder, updateReminder, deleteReminder } =
+    useReminders();
+
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [selectedReminder, setSelectedReminder] = useState<any | null>(null);
+  const [selectedReminder, setSelectedReminder] = useState<ReminderLog | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Refetch manual untuk aksi setelah mutasi (create/edit/delete)
-  const refetchReminders = useCallback(async () => {
-    try {
-      const res = await fetch("/api/reminders");
-      const json = await res.json();
-      if (!res.ok)
-        throw new Error(json.error || "Gagal mengambil data pengingat");
-      setReminders(json.data || []);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
-      toast.error(msg);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Effect untuk inisialisasi awal saat komponen di-mount
-  useEffect(() => {
-    let ignore = false;
-
-    async function initData() {
-      try {
-        const res = await fetch("/api/reminders");
-        const json = await res.json();
-        if (!ignore) {
-          if (!res.ok)
-            throw new Error(json.error || "Gagal mengambil data pengingat");
-          setReminders(json.data || []);
-        }
-      } catch (err) {
-        if (!ignore) {
-          const msg = err instanceof Error ? err.message : "Terjadi kesalahan";
-          toast.error(msg);
-        }
-      } finally {
-        if (!ignore) {
-          setLoading(false);
-        }
-      }
-    }
-
-    initData();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
 
   const handleOpenCreate = () => {
     setSelectedReminder(null);
     setIsDialogOpen(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleOpenEdit = (reminder: any) => {
+  const handleOpenEdit = (reminder: ReminderLog) => {
     setSelectedReminder(reminder);
     setIsDialogOpen(true);
   };
@@ -83,51 +37,25 @@ export default function RemindersPage() {
       return;
 
     try {
-      setLoading(true);
-      const res = await fetch(`/api/reminders/${id}`, { method: "DELETE" });
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || "Gagal menghapus log pengingat");
-      }
-
+      await deleteReminder(id);
       toast.success("Log pengingat berhasil dihapus");
-      await refetchReminders();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Gagal menghapus log";
       toast.error(msg);
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleSubmit = async (values: ReminderFormValues) => {
     try {
       setIsSubmitting(true);
-      const url = selectedReminder
-        ? `/api/reminders/${selectedReminder.id}`
-        : "/api/reminders";
-      const method = selectedReminder ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-
-      const json = await res.json();
-
-      if (!res.ok) {
-        throw new Error(json.error || "Terjadi kesalahan server");
+      if (selectedReminder) {
+        await updateReminder(selectedReminder.id, values);
+        toast.success("Log pengingat berhasil diperbarui");
+      } else {
+        await createReminder(values);
+        toast.success("Log pengingat baru berhasil dibuat");
       }
-
-      toast.success(
-        selectedReminder
-          ? "Log pengingat berhasil diperbarui"
-          : "Log pengingat baru berhasil dibuat",
-      );
       setIsDialogOpen(false);
-      await refetchReminders();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Gagal menyimpan log";
       toast.error(msg);

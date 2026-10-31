@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -15,16 +14,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Schedule } from "@/types/database.types";
 import { formatToLocalDatetimeInput, formatLocalToUTCISO } from "../utils";
+import {
+  scheduleSchema,
+  ScheduleSchemaInput as ScheduleFormValues,
+} from "../schemas/schedule.schema";
 
-const scheduleSchema = z.object({
-  class_name: z.string().min(2, "Nama kelas minimal 2 karakter"),
-  datetime: z.string().min(1, "Pilih tanggal dan waktu kelas"),
-  quota: z
-    .number({ message: "Masukkan kuota yang valid" })
-    .min(1, "Kuota minimal 1 orang"),
-});
-
-export type ScheduleFormValues = z.infer<typeof scheduleSchema>;
+export type { ScheduleFormValues };
 
 interface ScheduleFormDialogProps {
   isOpen: boolean;

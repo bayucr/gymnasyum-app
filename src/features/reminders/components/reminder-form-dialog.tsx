@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -28,20 +27,12 @@ import {
   PriorityLevel,
   ReminderLog,
 } from "@/types/database.types";
+import {
+  reminderSchema,
+  ReminderSchemaInput as ReminderFormValues,
+} from "../schemas/reminder.schema";
 
-const reminderSchema = z.object({
-  customer_id: z.string().min(1, "Pilih customer"),
-  schedule_id: z.string().min(1, "Pilih jadwal kelas"),
-  draft_message: z.string().min(5, "Draf pesan minimal 5 karakter"),
-  status: z.enum(["Scheduled", "Sent", "Responded", "No Response"] as const, {
-    message: "Pilih status pengingat",
-  }),
-  priority: z.enum(["Low", "Medium", "High"] as const, {
-    message: "Pilih tingkat prioritas",
-  }),
-});
-
-export type ReminderFormValues = z.infer<typeof reminderSchema>;
+export type { ReminderFormValues };
 
 interface ReminderFormDialogProps {
   isOpen: boolean;

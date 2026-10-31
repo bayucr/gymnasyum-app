@@ -13,8 +13,14 @@ import { ReminderLog } from "@/types/database.types";
 import { useReminders } from "@/features/reminders/hooks/use-reminders";
 
 export default function RemindersPage() {
-  const { reminders, loading, createReminder, updateReminder, deleteReminder } =
-    useReminders();
+  const {
+    reminders,
+    loading,
+    createReminder,
+    updateReminder,
+    deleteReminder,
+    refetch,
+  } = useReminders();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<ReminderLog | null>(
@@ -95,6 +101,7 @@ export default function RemindersPage() {
           reminders={reminders}
           onEdit={handleOpenEdit}
           onDelete={handleDelete}
+          onStatusChange={refetch}
         />
       )}
 

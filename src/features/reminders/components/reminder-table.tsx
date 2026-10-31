@@ -21,12 +21,14 @@ interface ReminderTableProps {
   reminders: ReminderLog[];
   onEdit: (reminder: ReminderLog) => void;
   onDelete: (id: string) => void;
+  onStatusChange?: () => void;
 }
 
 export function ReminderTable({
   reminders,
   onEdit,
   onDelete,
+  onStatusChange,
 }: ReminderTableProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [previewData, setPreviewData] = useState<{
@@ -114,14 +116,34 @@ export function ReminderTable({
     }
   };
 
-  const handleOpenWhatsApp = (phone?: string, message?: string) => {
-    if (!phone) {
+  const handleOpenWhatsApp = async (log: ReminderLog) => {
+    if (!log.customers?.phone) {
       toast.error("Nomor WhatsApp tidak tersedia");
       return;
     }
-    const cleanPhone = formatPhoneForWA(phone);
-    const encodedMessage = encodeURIComponent(message || "");
+
+    // 1. Buka tautan WhatsApp Web
+    const cleanPhone = formatPhoneForWA(log.customers.phone);
+    const encodedMessage = encodeURIComponent(log.draft_message || "");
     window.open(`https://wa.me/${cleanPhone}?text=${encodedMessage}`, "_blank");
+
+    // 2. Otomatisasi pembaruan status ke "Sent" jika status saat ini belum "Sent"
+    if (log.status !== "Sent") {
+      try {
+        const res = await fetch(`/api/reminders/${log.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "Sent" }),
+        });
+
+        if (res.ok) {
+          toast.success("Status pengingat diperbarui ke 'Sent'");
+          onStatusChange?.();
+        }
+      } catch (err) {
+        console.error("Gagal memperbarui status pengingat:", err);
+      }
+    }
   };
 
   return (
@@ -186,12 +208,7 @@ export function ReminderTable({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() =>
-                        handleOpenWhatsApp(
-                          log.customers?.phone,
-                          log.draft_message || "",
-                        )
-                      }
+                      onClick={() => handleOpenWhatsApp(log)}
                       title="Kirim via WhatsApp"
                       className="h-8 w-8 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
                     >

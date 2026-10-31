@@ -15,6 +15,7 @@ import { Pencil, Trash2, Send, Eye } from "lucide-react";
 import { formatPhoneForWA } from "../utils";
 import { MessagePreviewDialog } from "./message-preview-dialog";
 import { ReminderLog } from "@/types/database.types";
+import { toast } from "sonner";
 
 interface ReminderTableProps {
   reminders: ReminderLog[];
@@ -115,7 +116,7 @@ export function ReminderTable({
 
   const handleOpenWhatsApp = (phone?: string, message?: string) => {
     if (!phone) {
-      alert("Nomor WhatsApp tidak tersedia");
+      toast.error("Nomor WhatsApp tidak tersedia");
       return;
     }
     const cleanPhone = formatPhoneForWA(phone);

@@ -9,6 +9,7 @@ import {
   ScheduleFormValues,
 } from "@/features/schedules/components/schedule-form-dialog";
 import { Schedule } from "@/types/database.types";
+import { toast } from "sonner";
 
 export default function SchedulesPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
@@ -76,13 +77,15 @@ export default function SchedulesPage() {
       setLoading(true);
       const res = await fetch(`/api/schedules/${id}`, { method: "DELETE" });
       if (res.ok) {
+        toast.success("Jadwal kelas berhasil dihapus");
         await fetchSchedules();
       } else {
         const json = await res.json();
-        alert(`Gagal menghapus: ${json.error || "Terjadi kesalahan"}`);
+        toast.error(`Gagal menghapus: ${json.error || "Terjadi kesalahan"}`);
       }
     } catch (err) {
       console.error("Gagal menghapus jadwal:", err);
+      toast.error("Gagal terhubung ke server.");
     } finally {
       setLoading(false);
     }
@@ -105,16 +108,24 @@ export default function SchedulesPage() {
       const json = await res.json();
 
       if (!res.ok) {
-        alert(`Gagal menyimpan: ${json.error || "Terjadi kesalahan server"}`);
+        toast.error(
+          `Gagal menyimpan: ${json.error || "Terjadi kesalahan server"}`,
+        );
         return;
       }
+
+      toast.success(
+        selectedSchedule
+          ? "Jadwal kelas berhasil diperbarui"
+          : "Jadwal kelas baru berhasil ditambahkan",
+      );
 
       setIsDialogOpen(false);
       setLoading(true);
       await fetchSchedules();
     } catch (err) {
       console.error("Gagal menyimpan jadwal:", err);
-      alert("Gagal terhubung ke server.");
+      toast.error("Gagal terhubung ke server");
     } finally {
       setIsSubmitting(false);
     }

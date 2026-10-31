@@ -37,14 +37,3 @@ export class ReminderService {
 }
 
 export const reminderService = new ReminderService();
-
-// Export fungsi pembantu untuk kompatibilitas ke belakang
-export const getReminderLogs = () => reminderService.getAllReminders();
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createReminderLog = (data: any) =>
-  reminderService.createReminder(data);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const updateReminderLog = (id: string, data: any) =>
-  reminderService.updateReminder(id, data);
-export const deleteReminderLog = (id: string) =>
-  reminderService.deleteReminder(id);

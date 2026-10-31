@@ -3,10 +3,8 @@ import {
   customerRepository,
   CustomerRepository,
 } from "../repositories/customer.repository";
-import {
-  CustomerSchemaInput,
-  normalizePhoneNumber,
-} from "../schemas/customer.schema";
+import { CustomerSchemaInput } from "../schemas/customer.schema";
+import { formatPhoneForWA } from "@/lib/utils";
 
 export type FollowUpPriority = "Low" | "Medium" | "High";
 
@@ -47,11 +45,11 @@ export class CustomerService {
   }
 
   async createCustomer(input: CustomerSchemaInput): Promise<Customer> {
-    const normalizedPhone = normalizePhoneNumber(input.phone);
+    const formattedPhone = formatPhoneForWA(input.phone);
 
     return await this.repo.create({
       ...input,
-      phone: normalizedPhone,
+      phone: formattedPhone,
     });
   }
 
@@ -61,7 +59,7 @@ export class CustomerService {
   ): Promise<Customer> {
     const updateData = { ...input };
     if (updateData.phone) {
-      updateData.phone = normalizePhoneNumber(updateData.phone);
+      updateData.phone = formatPhoneForWA(updateData.phone);
     }
 
     return await this.repo.update(id, updateData);

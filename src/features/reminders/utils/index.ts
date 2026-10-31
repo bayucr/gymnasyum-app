@@ -1,13 +1,4 @@
-/**
- * Format nomor telepon ke standar internasional WhatsApp (misal: 0812 -> 62812)
- */
-export function formatPhoneForWA(phone: string): string {
-  let cleaned = phone.replace(/[^0-9]/g, "");
-  if (cleaned.startsWith("0")) {
-    cleaned = "62" + cleaned.slice(1);
-  }
-  return cleaned;
-}
+export { formatPhoneForWA } from "@/lib/utils";
 
 /**
  * Generate draf pesan pengingat WhatsApp otomatis

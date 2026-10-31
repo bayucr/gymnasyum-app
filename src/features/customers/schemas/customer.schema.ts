@@ -1,13 +1,5 @@
 import { z } from "zod";
 
-export function normalizePhoneNumber(phone: string): string {
-  const cleaned = phone.replace(/[^0-9]/g, "");
-  if (cleaned.startsWith("0")) {
-    return "62" + cleaned.slice(1);
-  }
-  return cleaned;
-}
-
 export const customerSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
   phone: z

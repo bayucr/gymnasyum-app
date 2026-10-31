@@ -1,6 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Booking, Customer, Schedule } from "@/types/database.types";
-import { DatabaseError } from "@/lib/errors";
+import { DatabaseError, ValidationError } from "@/lib/errors";
 
 export interface BookingWithSchedule extends Booking {
   schedules: Schedule;
@@ -77,6 +77,9 @@ export class BookingRepository {
       .single();
 
     if (error) {
+      if (error.code === "23505") {
+        throw new ValidationError("Customer sudah terdaftar di sesi kelas ini");
+      }
       throw new DatabaseError("Gagal mendaftarkan customer ke kelas", error);
     }
 

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 
-// 1. Interface TypeScript untuk menggantikan `any`
 interface BookingCronData {
   id: string;
   customer_id: string;
@@ -17,14 +16,12 @@ interface BookingCronData {
 }
 
 export async function GET(request: Request) {
-  // 2. Verifikasi Token Keamanan Cron Vercel
   const authHeader = request.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    // 3. Hitung Rentang Waktu H-1 (Besok Hari)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -35,7 +32,7 @@ export async function GET(request: Request) {
       new Date(tomorrow).setHours(23, 59, 59, 999),
     ).toISOString();
 
-    // 4. Query Booking Kelas Besok Beserta Relasi Customer & Schedule
+    // 1. Query Booking Kelas Besok
     const { data: bookings, error: fetchError } = await supabase
       .from("bookings")
       .select(
@@ -49,11 +46,34 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Tidak ada jadwal kelas besok." });
     }
 
-    // 5. Safe Type Casting
     const typedBookings = bookings as unknown as BookingCronData[];
 
-    // 6. Formulasi Draf Pesan
-    const newReminders = typedBookings.map((booking) => {
+    // 2. Query Reminder Logs yang Sudah Ada di Database (Untuk Cegah Duplikasi)
+    const { data: existingReminders, error: existingError } = await supabase
+      .from("reminder_logs")
+      .select("customer_id, schedule_id");
+
+    if (existingError) throw existingError;
+
+    // Buat Set kunci unik "customer_id_schedule_id" dari reminder yang sudah tersimpan
+    const existingKeys = new Set(
+      (existingReminders || []).map((r) => `${r.customer_id}_${r.schedule_id}`),
+    );
+
+    // 3. Filter Hanya Booking yang BELUM Punya Draf Reminder
+    const newBookingsToRemind = typedBookings.filter(
+      (b) => !existingKeys.has(`${b.customer_id}_${b.schedule_id}`),
+    );
+
+    if (newBookingsToRemind.length === 0) {
+      return NextResponse.json({
+        message: "Semua draf reminder untuk kelas besok sudah pernah dibuat.",
+        inserted: 0,
+      });
+    }
+
+    // 4. Formulasi Draf Pesan Baru
+    const newReminders = newBookingsToRemind.map((booking) => {
       const customerName = booking.customers?.name ?? "Customer";
       const className = booking.schedules?.class_name ?? "Kelas";
       const datetime = booking.schedules?.datetime
@@ -76,7 +96,7 @@ export async function GET(request: Request) {
       };
     });
 
-    // 7. Simpan Draf ke Tabel reminder_logs
+    // 5. Insert Hanya Draf Baru
     const { error: insertError } = await supabase
       .from("reminder_logs")
       .insert(newReminders);

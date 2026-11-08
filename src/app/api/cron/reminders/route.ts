@@ -22,46 +22,63 @@ export async function GET(request: Request) {
   }
 
   try {
+    // 1. Hitung Rentang Waktu H-1 (Besok Hari)
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const startOfDay = new Date(
+    const startOfDayStr = new Date(
       new Date(tomorrow).setHours(0, 0, 0, 0),
     ).toISOString();
-    const endOfDay = new Date(
+    const endOfDayStr = new Date(
       new Date(tomorrow).setHours(23, 59, 59, 999),
     ).toISOString();
 
-    // 1. Query Booking Kelas Besok
+    const startOfDay = new Date(startOfDayStr);
+    const endOfDay = new Date(endOfDayStr);
+
+    // 2. Query Booking dengan !inner JOIN (Agar Filter Tanggal Berfungsi di Level SQL)
     const { data: bookings, error: fetchError } = await supabase
       .from("bookings")
       .select(
-        "id, customer_id, schedule_id, customers(name, phone), schedules(class_name, datetime)",
+        "id, customer_id, schedule_id, customers(name, phone), schedules!inner(class_name, datetime)",
       )
-      .gte("schedules.datetime", startOfDay)
-      .lte("schedules.datetime", endOfDay);
+      .gte("schedules.datetime", startOfDayStr)
+      .lte("schedules.datetime", endOfDayStr);
 
     if (fetchError) throw fetchError;
     if (!bookings || bookings.length === 0) {
-      return NextResponse.json({ message: "Tidak ada jadwal kelas besok." });
+      return NextResponse.json({
+        message: "Tidak ada jadwal kelas untuk besok.",
+      });
     }
 
     const typedBookings = bookings as unknown as BookingCronData[];
 
-    // 2. Query Reminder Logs yang Sudah Ada di Database (Untuk Cegah Duplikasi)
+    // 3. Filter Proteksi Ganda (JavaScript Level Filter Tanggal Besok)
+    const tomorrowBookings = typedBookings.filter((b) => {
+      if (!b.schedules?.datetime) return false;
+      const scheduleDate = new Date(b.schedules.datetime);
+      return scheduleDate >= startOfDay && scheduleDate <= endOfDay;
+    });
+
+    if (tomorrowBookings.length === 0) {
+      return NextResponse.json({
+        message: "Tidak ada jadwal kelas yang cocok untuk besok.",
+      });
+    }
+
+    // 4. Filter Idempotency (Cegah Duplikasi jika Draf Sudah Ada)
     const { data: existingReminders, error: existingError } = await supabase
       .from("reminder_logs")
       .select("customer_id, schedule_id");
 
     if (existingError) throw existingError;
 
-    // Buat Set kunci unik "customer_id_schedule_id" dari reminder yang sudah tersimpan
     const existingKeys = new Set(
       (existingReminders || []).map((r) => `${r.customer_id}_${r.schedule_id}`),
     );
 
-    // 3. Filter Hanya Booking yang BELUM Punya Draf Reminder
-    const newBookingsToRemind = typedBookings.filter(
+    const newBookingsToRemind = tomorrowBookings.filter(
       (b) => !existingKeys.has(`${b.customer_id}_${b.schedule_id}`),
     );
 
@@ -72,13 +89,11 @@ export async function GET(request: Request) {
       });
     }
 
-    // 4. Formulasi Draf Pesan Baru
+    // 5. Formulasi Draf Pesan
     const newReminders = newBookingsToRemind.map((booking) => {
       const customerName = booking.customers?.name ?? "Customer";
       const className = booking.schedules?.class_name ?? "Kelas";
-      const datetime = booking.schedules?.datetime
-        ? new Date(booking.schedules.datetime)
-        : new Date();
+      const datetime = new Date(booking.schedules!.datetime);
 
       const timeString = datetime.toLocaleTimeString("id-ID", {
         hour: "2-digit",
@@ -96,7 +111,7 @@ export async function GET(request: Request) {
       };
     });
 
-    // 5. Insert Hanya Draf Baru
+    // 6. Insert ke Database
     const { error: insertError } = await supabase
       .from("reminder_logs")
       .insert(newReminders);

@@ -42,3 +42,24 @@ export interface Booking {
   created_at: string;
   updated_at: string;
 }
+
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  meta: PaginationMeta;
+}
+
+export interface CustomerFilterParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  segment?: SegmentType;
+  status?: CustomerStatus;
+  priority?: PriorityLevel;
+}

@@ -1,4 +1,8 @@
-import { Customer } from "@/types/database.types";
+import {
+  Customer,
+  CustomerFilterParams,
+  PaginatedResult,
+} from "@/types/database.types";
 import {
   customerRepository,
   CustomerRepository,
@@ -34,6 +38,34 @@ export class CustomerService {
       ...c,
       priorityLevel: calculatePriorityLevel(c.attendance_rate),
     }));
+  }
+
+  async getPaginatedCustomers(
+    params: CustomerFilterParams,
+  ): Promise<PaginatedResult<CustomerWithPriority>> {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params.limit ?? 10));
+
+    const { data, total } = await this.repo.findPaginated({
+      ...params,
+      page,
+      limit,
+    });
+
+    const items: CustomerWithPriority[] = data.map((c) => ({
+      ...c,
+      priorityLevel: calculatePriorityLevel(c.attendance_rate),
+    }));
+
+    return {
+      items,
+      meta: {
+        page,
+        limit,
+        totalItems: total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   }
 
   async getCustomerById(id: string): Promise<CustomerWithPriority> {

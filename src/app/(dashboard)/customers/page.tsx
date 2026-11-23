@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Plus, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Users, Search, X, RotateCcw } from "lucide-react";
 import { CustomerTable } from "@/features/customers/components/customer-table";
 import {
   CustomerFormDialog,
@@ -12,6 +13,7 @@ import {
 import { useCustomers } from "@/features/customers/hooks/use-customers";
 import { CustomerWithPriority } from "@/features/customers/services/customer.service";
 import { ErrorBanner } from "@/components/shared/error-banner";
+import { PaginationControls } from "@/components/shared/pagination-controls";
 import { AssignClassDialog } from "@/features/bookings/components/assign-class-dialog";
 import { CreateReminderDialog } from "@/features/reminders/components/create-reminder-dialog";
 import { useBookings } from "@/features/bookings/hooks/use-bookings";
@@ -19,18 +21,43 @@ import { BookingWithSchedule } from "@/features/bookings/repositories/booking.re
 import { ReminderSchemaInput } from "@/features/reminders/schemas/reminder.schema";
 import { useSchedules } from "@/features/schedules/hooks/use-schedules";
 import { useReminders } from "@/features/reminders/hooks/use-reminders";
+import { PriorityLevel, SegmentType } from "@/types/database.types";
+
+const SEGMENT_OPTIONS: { label: string; value: SegmentType | "ALL" }[] = [
+  { label: "Semua Segmen", value: "ALL" },
+  { label: "Ibu-ibu", value: "Ibu-ibu" },
+  { label: "Lansia", value: "Lansia" },
+  { label: "Umum", value: "Umum" },
+];
+
+const PRIORITY_OPTIONS: { label: string; value: PriorityLevel | "ALL" }[] = [
+  { label: "Semua Prioritas", value: "ALL" },
+  { label: "High", value: "High" },
+  { label: "Medium", value: "Medium" },
+  { label: "Low", value: "Low" },
+];
 
 export default function CustomersPage() {
   // 1. Data Hooks
   const {
     customers,
+    meta,
     loading,
     error,
+    setPage,
+    setLimit,
+    search,
+    setSearch,
+    segment,
+    setSegment,
+    priority,
+    setPriority,
+    resetFilters,
     refetch,
     createCustomer,
     updateCustomer,
     deleteCustomer,
-  } = useCustomers();
+  } = useCustomers(10);
 
   const { schedules } = useSchedules();
   const { createReminder } = useReminders();
@@ -46,6 +73,9 @@ export default function CustomersPage() {
   const [customerBookings, setCustomerBookings] = useState<
     Record<string, BookingWithSchedule[]>
   >({});
+
+  const hasActiveFilters =
+    search.trim() !== "" || segment !== "ALL" || priority !== "ALL";
 
   // 3. Modal Open/Close Handlers
   const closeModal = () => setActiveModal({ type: null, customer: null });
@@ -135,7 +165,7 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
             <Users className="h-6 w-6 text-emerald-600" />
@@ -148,11 +178,83 @@ export default function CustomersPage() {
         </div>
         <Button
           onClick={handleOpenCreate}
-          className="bg-emerald-600 hover:bg-emerald-700 gap-2"
+          className="bg-emerald-600 hover:bg-emerald-700 gap-2 self-start sm:self-auto"
         >
           <Plus className="h-4 w-4" />
           Tambah Customer
         </Button>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-4 rounded-lg border border-slate-200 space-y-3">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          {/* Input Pencarian */}
+          <div className="relative w-full lg:max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Cari nama atau nomor WhatsApp..."
+              className="pl-9 pr-9"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                aria-label="Hapus pencarian"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Dropdowns & Reset */}
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={segment}
+              onChange={(e) =>
+                setSegment(e.target.value as SegmentType | "ALL")
+              }
+              aria-label="Filter Segmen"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-600 focus:outline-none"
+            >
+              {SEGMENT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={priority}
+              onChange={(e) =>
+                setPriority(e.target.value as PriorityLevel | "ALL")
+              }
+              aria-label="Filter Prioritas"
+              className="h-9 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-700 focus:border-emerald-600 focus:outline-none"
+            >
+              {PRIORITY_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+
+            {hasActiveFilters && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 gap-1.5 text-slate-600"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -163,20 +265,33 @@ export default function CustomersPage() {
         />
       )}
 
-      {loading ? (
+      {loading && customers.length === 0 ? (
         <div className="p-8 text-center text-slate-500 bg-white rounded-lg border border-slate-200">
           Memuat data customer...
         </div>
       ) : (
-        <CustomerTable
-          customers={customers}
-          onEdit={handleOpenEdit}
-          onDelete={handleDelete}
-          onAssignClass={handleOpenAssign}
-          onCreateReminder={handleOpenReminder}
-          customerBookings={customerBookings}
-          onFetchCustomerBookings={handleFetchCustomerBookings}
-        />
+        <div className="space-y-4">
+          <div className={loading ? "opacity-60 pointer-events-none" : ""}>
+            <CustomerTable
+              customers={customers}
+              onEdit={handleOpenEdit}
+              onDelete={handleDelete}
+              onAssignClass={handleOpenAssign}
+              onCreateReminder={handleOpenReminder}
+              customerBookings={customerBookings}
+              onFetchCustomerBookings={handleFetchCustomerBookings}
+            />
+          </div>
+
+          <div className="bg-white px-4 pb-4 rounded-lg border border-slate-200">
+            <PaginationControls
+              meta={meta}
+              onPageChange={setPage}
+              onLimitChange={setLimit}
+              disabled={loading}
+            />
+          </div>
+        </div>
       )}
 
       <CustomerFormDialog

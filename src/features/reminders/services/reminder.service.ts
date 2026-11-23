@@ -1,4 +1,8 @@
-import { ReminderLog } from "@/types/database.types";
+import {
+  PaginatedResult,
+  ReminderFilterParams,
+  ReminderLog,
+} from "@/types/database.types";
 import {
   reminderRepository,
   ReminderRepository,
@@ -10,6 +14,29 @@ export class ReminderService {
 
   async getAllReminders() {
     return await this.repo.findAll();
+  }
+
+  async getPaginatedReminders(
+    params: ReminderFilterParams,
+  ): Promise<PaginatedResult<ReminderLog>> {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params.limit ?? 10));
+
+    const { data, total } = await this.repo.findPaginated({
+      ...params,
+      page,
+      limit,
+    });
+
+    return {
+      items: data,
+      meta: {
+        page,
+        limit,
+        totalItems: total,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
   }
 
   async getTodayReminders() {

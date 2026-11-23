@@ -1,24 +1,78 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { ReminderLog } from "@/types/database.types";
+import {
+  PaginatedResult,
+  PaginationMeta,
+  PriorityLevel,
+  ReminderLog,
+  ReminderStatus,
+} from "@/types/database.types";
 import { ReminderFormValues } from "../components/reminder-form-dialog";
 
-export function useReminders() {
+export function useReminders(initialLimit = 10) {
   const [reminders, setReminders] = useState<ReminderLog[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta>({
+    page: 1,
+    limit: initialLimit,
+    totalItems: 0,
+    totalPages: 1,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // State pencarian, filter, dan paginasi
+  const [page, setPageState] = useState(1);
+  const [limit, setLimitState] = useState(initialLimit);
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [status, setStatusState] = useState<ReminderStatus | "ALL">("ALL");
+  const [priority, setPriorityState] = useState<PriorityLevel | "ALL">("ALL");
+
+  const buildQueryString = useCallback(() => {
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+    });
+
+    if (debouncedSearch.trim()) {
+      params.set("search", debouncedSearch.trim());
+    }
+    if (status !== "ALL") {
+      params.set("status", status);
+    }
+    if (priority !== "ALL") {
+      params.set("priority", priority);
+    }
+
+    return params.toString();
+  }, [page, limit, debouncedSearch, status, priority]);
+
+  // Debounce input pencarian 400ms
+  useEffect(() => {
+    if (search === debouncedSearch) return;
+
+    const timer = setTimeout(() => {
+      setLoading(true);
+      setPageState(1);
+      setDebouncedSearch(search);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [search, debouncedSearch]);
+
   const fetchReminders = useCallback(async () => {
     try {
-      const res = await fetch("/api/reminders");
+      const res = await fetch(`/api/reminders?${buildQueryString()}`);
       const json = await res.json();
 
       if (!res.ok) {
         throw new Error(json.error || "Gagal mengambil data pengingat");
       }
 
-      setReminders(json.data || []);
+      const paginated: PaginatedResult<ReminderLog> = json.data;
+      setReminders(paginated.items || []);
+      setMeta(paginated.meta);
       setError(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Terjadi kesalahan";
@@ -27,14 +81,14 @@ export function useReminders() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildQueryString]);
 
   useEffect(() => {
     let isSubscribed = true;
 
-    const initFetch = async () => {
+    const loadReminders = async () => {
       try {
-        const res = await fetch("/api/reminders");
+        const res = await fetch(`/api/reminders?${buildQueryString()}`);
         const json = await res.json();
 
         if (!isSubscribed) return;
@@ -43,7 +97,9 @@ export function useReminders() {
           throw new Error(json.error || "Gagal mengambil data pengingat");
         }
 
-        setReminders(json.data || []);
+        const paginated: PaginatedResult<ReminderLog> = json.data;
+        setReminders(paginated.items || []);
+        setMeta(paginated.meta);
         setError(null);
       } catch (err) {
         if (!isSubscribed) return;
@@ -58,11 +114,43 @@ export function useReminders() {
       }
     };
 
-    initFetch();
+    loadReminders();
 
     return () => {
       isSubscribed = false;
     };
+  }, [buildQueryString]);
+
+  const setPage = useCallback((newPage: number) => {
+    setLoading(true);
+    setPageState(newPage);
+  }, []);
+
+  const setLimit = useCallback((newLimit: number) => {
+    setLoading(true);
+    setPageState(1);
+    setLimitState(newLimit);
+  }, []);
+
+  const setStatus = useCallback((newStatus: ReminderStatus | "ALL") => {
+    setLoading(true);
+    setPageState(1);
+    setStatusState(newStatus);
+  }, []);
+
+  const setPriority = useCallback((newPriority: PriorityLevel | "ALL") => {
+    setLoading(true);
+    setPageState(1);
+    setPriorityState(newPriority);
+  }, []);
+
+  const resetFilters = useCallback(() => {
+    setLoading(true);
+    setSearch("");
+    setDebouncedSearch("");
+    setStatusState("ALL");
+    setPriorityState("ALL");
+    setPageState(1);
   }, []);
 
   const refetch = useCallback(async () => {
@@ -117,8 +205,20 @@ export function useReminders() {
 
   return {
     reminders,
+    meta,
     loading,
     error,
+    page,
+    setPage,
+    limit,
+    setLimit,
+    search,
+    setSearch,
+    status,
+    setStatus,
+    priority,
+    setPriority,
+    resetFilters,
     refetch,
     createReminder,
     updateReminder,

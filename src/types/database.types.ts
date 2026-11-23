@@ -63,3 +63,11 @@ export interface CustomerFilterParams {
   status?: CustomerStatus;
   priority?: PriorityLevel;
 }
+
+export interface ReminderFilterParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: ReminderStatus;
+  priority?: PriorityLevel;
+}
